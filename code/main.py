@@ -1,0 +1,143 @@
+import sys
+import pygame
+import time
+from constants import SIM_DT, MAX_FRAME_DT
+from dataclasses import replace
+from settings_manager import load_settings, save_settings
+from display import Display
+from input import InputHandler
+from entity_manager import EntityManager
+from asset_manager import AssetManager
+from gamestate import StateGameplay
+from world import World
+
+
+class Game:
+    def __init__(self):
+        # Timing
+        self.done = False
+        self.clock = pygame.time.Clock()
+        self.previous_time = time.time()
+        self.fps = 0
+        self.sim_accumulator = 0.0
+
+        # Settings
+        self.settings = load_settings()
+
+        # Window and Display
+        self.display = Display(self)
+        pygame.display.set_caption('ISOMETRIC ARPG')
+
+        # Input
+        self.input_handler = InputHandler()
+        self.mouse_pos_internal = (0, 0)
+
+        # Entity Manager
+        self.entity_manager = EntityManager()
+
+        # Asset Manager
+        self.asset_manager = AssetManager()
+        self.asset_manager.load()
+
+        # World
+        self.world = World(self, self.entity_manager)
+
+        # Game State Machine
+        self.states = {
+            'STARTUP': StateGameplay(self),
+        }
+        self.state_name = 'STARTUP'  # Beginning state when user opens the application.
+        self.state = self.states[self.state_name]
+        self.state.startup({})
+
+
+    def flip_state(self):
+        next_state = self.state.next_state
+        self.state.done = False
+        self.state_name = next_state
+        persistent = self.state.persist
+        self.state = self.states[self.state_name]
+        self.state.startup(persistent)
+
+
+    def update_state(self, input_state):
+        if self.state.quit:
+            self.done = True
+        elif self.state.done:
+            self.flip_state()
+        self.state.update(input_state)
+
+
+    def save_settings(self):
+        save_settings(self.settings)
+
+
+    def to_game_input_state(self, input_state):
+        return replace(input_state, mouse_pos=self.window_to_internal_mouse_pos(input_state.mouse_pos))
+
+
+    # window_to_internal_mouse_pos converts the mouse position in the pygame window into coordinates of the internal rendering surface.
+    def window_to_internal_mouse_pos(self, window_pos):
+        window_x, window_y = window_pos
+        scaled_width = self.display.internal_size[0] * self.display.scale
+        scaled_height = self.display.internal_size[1] * self.display.scale
+        x_offset = (self.display.window_size[0] - scaled_width) // 2
+        y_offset = (self.display.window_size[1] - scaled_height) // 2
+        internal_x = (window_x - x_offset) // self.display.scale
+        internal_y = (window_y - y_offset) // self.display.scale
+
+        # Clamp to internal surface bounds.
+        internal_x = max(0, min(self.display.internal_width - 1, internal_x))
+        internal_y = max(0, min(self.display.internal_height - 1, internal_y))
+        return internal_x, internal_y
+
+
+    def draw(self, render_interpolation_factor):
+        self.state.draw(self.display.render_surface, render_interpolation_factor)
+        scaled_width = (self.display.internal_size[0] * self.display.scale)
+        scaled_height = (self.display.internal_size[1] * self.display.scale)
+        x_offset = (self.display.window_size[0] - scaled_width) // 2
+        y_offset = (self.display.window_size[1] - scaled_height) // 2
+        scaled_surface = pygame.transform.scale_by(self.display.render_surface, self.display.scale)
+        self.display.window.blit(scaled_surface, (x_offset, y_offset))
+        pygame.display.flip()
+
+
+    def run(self):
+        while not self.done:
+            raw_frame_dt = self.clock.tick(self.display.fps_cap) / 1000.0
+            self.fps = self.clock.get_fps()
+
+            frame_dt = raw_frame_dt
+
+            if frame_dt > MAX_FRAME_DT:
+                frame_dt = MAX_FRAME_DT
+
+            input_state = self.input_handler.collect()
+            input_state = self.to_game_input_state(input_state)
+            self.mouse_pos_internal = input_state.mouse_pos
+
+            if input_state.quit:
+                self.done = True
+
+            self.sim_accumulator += frame_dt
+
+            ticks_to_run = 0
+            while self.sim_accumulator >= SIM_DT:
+                ticks_to_run += 1
+                self.sim_accumulator -= SIM_DT
+
+            for _ in range(ticks_to_run):
+                self.update_state(input_state)
+
+            render_interpolation_factor = self.sim_accumulator / SIM_DT
+            render_interpolation_factor = max(0.0, min(1.0, render_interpolation_factor))
+
+            self.draw(render_interpolation_factor)
+
+
+if __name__ == '__main__':
+    game = Game()
+    game.run()
+    pygame.quit()
+    sys.exit()
