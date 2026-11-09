@@ -2,7 +2,6 @@ from objects import Vec2i
 from sprite_system import sprite_system, interpolate_cpos
 from goal_system import goal_system, set_goal
 from coordinates import screen_to_world
-import math
 
 
 class State:

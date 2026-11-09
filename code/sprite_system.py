@@ -42,7 +42,7 @@ def sprite_system(world, surface, render_alpha):
 
         sprite_data = sprite["image_metadata"]
         image = sprite_data["image"]
-        sprite_offset = sprite_data["anchor"]
+        sprite_offset = sprite_data["anchor"].value
 
         # Determine rendering order
         depth = screen_pos.y + sprite["depth_offset"]
