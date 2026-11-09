@@ -1,6 +1,7 @@
 from support import tile_center
 from objects import Vec2i, Transform
 from camera import Camera
+from render_priority import RenderPriority
 
 
 class World:
@@ -9,13 +10,8 @@ class World:
         self.entity_manager = entity_manager
         self.tick = 0
 
-        # Area Setup: 0=free, 1=blocked
-        self.map = [
-            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-        ]
-
         # Component Setup
+        self.tile = set()
         self.actor = set()
         self.object = set()
         self.goal = {}
@@ -25,6 +21,13 @@ class World:
         self.sprite = {}
         self.click_box = {}
         self.skills = {}
+
+        # Map Setup: 0=blocked, 1=free
+        self.map = [
+            [0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0],
+            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0]
+        ]
+        self.load_map()
 
         # Actor Setup
         self.player = self.spawn_player()
@@ -38,25 +41,48 @@ class World:
 
 
     def spawn_player(self, spawn_tile=None):
-        if not spawn_tile:
+        if spawn_tile is None:
             spawn_tile = Vec2i(0, 0)
 
         eid = self.entity_manager.create()
 
         self.actor.add(eid)
-        self.transform[eid] = Transform(cpos=tile_center(spawn_tile), prev_cpos=tile_center(spawn_tile))
+        self.transform[eid] = Transform(cpos=tile_center(spawn_tile), prev_cpos=tile_center(spawn_tile), elevation=0)
         self.movement_footprint[eid] = "plus5"
         self.motion_state[eid] = {
             "controller": None,
             "last_delta": Vec2i(0, 0)
         }
+        image = self.game.asset_manager.images["player"]
         self.sprite[eid] = {
-            "image": self.game.asset_manager.images["player"],
-            "anchor": "center",
-            "z": 0,
+            "image": image,
+            "anchor": "bottom_center",
+            "depth_offset": 0,
+            "priority": RenderPriority.ACTOR,
         }
         self.skills[eid] = {
             "LMB": "attack",
         }
 
         return eid
+
+
+    def load_map(self):
+        for y, row in enumerate(self.map):
+            for x, tile_type in enumerate(row):
+                if tile_type == 0:
+                    image = self.game.asset_manager.images["block"]
+                elif tile_type == 1:
+                    image = self.game.asset_manager.images["water"]
+
+                tile_location = Vec2i(x, y)
+                eid = self.entity_manager.create()
+
+                self.tile.add(eid)
+                self.transform[eid] = Transform(cpos=tile_center(tile_location), prev_cpos=tile_center(tile_location), elevation=0)
+                self.sprite[eid] = {
+                    "image": image,
+                    "anchor": "center",
+                    "depth_offset": - image.get_height() // 2,
+                    "priority": RenderPriority.FLOOR,
+                }

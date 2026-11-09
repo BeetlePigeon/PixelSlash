@@ -2,6 +2,7 @@ from objects import Vec2i
 from sprite_system import sprite_system, interpolate_cpos
 from goal_system import goal_system, set_goal
 from coordinates import screen_to_world
+import math
 
 
 class State:
@@ -109,5 +110,6 @@ class StateGameplay(State):
         # Center the camera on that position.
         world.world_camera.center_on(player_render_pos)
 
-        # Draw the world using the updated camera position.
-        sprite_system(self.game.world, surface, render_alpha)
+        # Draw the world layer by layer using the updated camera position.
+        renderables = world.sprite.items()
+        sprite_system(self.game.world, surface, renderables, render_alpha)

@@ -23,3 +23,4 @@ class Vec2i:
 class Transform:
     cpos: Vec2i
     prev_cpos: Vec2i
+    elevation: int

@@ -12,44 +12,51 @@ def interpolate_cpos(prev, curr, alpha):
 def get_sprite_offset(image, anchor):
     if anchor == "center":
         return Vec2i(
-            -image.get_width() // 2,
-            -image.get_height() // 2,
+            -(image.get_width() // 2),
+            -(image.get_height() // 2),
         )
 
     elif anchor == "bottom_center":
         return Vec2i(
-            -image.get_width() // 2,
+            -(image.get_width() // 2),
             -image.get_height(),
         )
 
 
-def sprite_system(world, surface, render_alpha):
+def sprite_system(world, surface, sprites, render_alpha):
     viewport_size = Vec2i(*surface.get_size())
     draw_list = []
 
-    for entity, sprite in world.sprite.items():
-        transform = world.transform[entity]
+    for eid, sprite in sprites:
+        transform = world.transform[eid]
 
-        pos = interpolate_cpos(transform.prev_cpos, transform.cpos, render_alpha)
+        interp_cpos = interpolate_cpos(transform.prev_cpos, transform.cpos, render_alpha)
 
         screen_pos = world_to_screen(
-            pos,
+            interp_cpos,
             world.world_camera.position,
             viewport_size
         )
 
-        screen_x, screen_y = screen_pos.x, screen_pos.y
-
         image = sprite["image"]
         sprite_offset = get_sprite_offset(image, sprite["anchor"])
 
-        draw_list.append((
-            screen_y + sprite["z"],
-            image,
-            (screen_x + sprite_offset.x, screen_y + sprite_offset.y),
-        ))
+        # Determine rendering order
+        depth = screen_pos.y + sprite["depth_offset"]
+        priority = sprite["priority"]
 
-    draw_list.sort(key=lambda item: item[0])
+        # Determine actual drawing position
+        draw_pos = (
+            screen_pos.x + sprite_offset.x,
+            screen_pos.y + sprite_offset.y - transform.elevation,
+        )
 
-    for _, image, pos in draw_list:
+        draw_list.append(
+            (depth, priority, eid, image, draw_pos)
+        )
+
+    # Sort by depth, tiebreak by priority, tiebreak again by eid
+    draw_list.sort(key=lambda r: (r[0], r[1], r[2]))
+
+    for _, _, _, image, pos in draw_list:
         surface.blit(image, pos)
