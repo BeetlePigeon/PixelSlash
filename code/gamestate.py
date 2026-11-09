@@ -29,11 +29,10 @@ class State:
 class StateGameplay(State):
     def __init__(self, game):
         super().__init__(game)
-        self.ui_widgets = [pygame.Rect(8, 8, 32, 32)]
+        self.ui_widgets = []
 
 
-    def mouse_over_ui(self, mouse_pos):
-        screen_pos = self.game.window_to_internal_mouse_pos(mouse_pos)
+    def mouse_over_ui(self, screen_pos):
         for widget in self.ui_widgets:
             if widget.collidepoint(screen_pos):
                 self.handle_ui_interaction(widget)
@@ -43,20 +42,14 @@ class StateGameplay(State):
 
 
     def handle_ui_interaction(self, widget):
-        print(f"widget clicked at {widget.x}, {widget.y}")
+        return
 
 
     def build_player_intents(self, input_state):
         lmb = 1 in input_state.mouse_pressed
-        print(lmb)
-        mouse_pos = input_state.mouse_pos
 
         if lmb:
-            self.handle_left_click(mouse_pos)
-
-
-    def get_hovered_target(self, pos):
-        print("no_target")
+            self.handle_left_click(input_state.mouse_pos)
 
 
     def handle_left_click(self, mouse_pos):
@@ -78,6 +71,20 @@ class StateGameplay(State):
 
             elif target in world.object:
                 set_goal(world, actor=player, target=target, mode="interact")
+
+
+    def get_hovered_target(self, pos):
+        world = self.game.world
+
+        for actor in world.actor:
+            if actor.collidepoint(pos):
+                return actor
+
+        for obj in world.object:
+            if obj.collidepoint(pos):
+                return obj
+
+        return None
 
 
     def update(self, input_state):

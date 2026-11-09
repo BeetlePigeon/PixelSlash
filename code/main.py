@@ -1,11 +1,10 @@
 import sys
 import pygame
-import time
 from constants import SIM_DT, MAX_FRAME_DT
 from dataclasses import replace
 from settings_manager import load_settings, save_settings
 from display import Display
-from input import InputHandler
+from input import InputHandler, InputBuffer
 from entity_manager import EntityManager
 from asset_manager import AssetManager
 from gamestate import StateGameplay
@@ -17,7 +16,6 @@ class Game:
         # Timing
         self.done = False
         self.clock = pygame.time.Clock()
-        self.previous_time = time.time()
         self.fps = 0
         self.sim_accumulator = 0.0
 
@@ -30,6 +28,7 @@ class Game:
 
         # Input
         self.input_handler = InputHandler()
+        self.input_buffer = InputBuffer()
         self.mouse_pos_internal = (0, 0)
 
         # Entity Manager
@@ -72,7 +71,7 @@ class Game:
         save_settings(self.settings)
 
 
-    def to_game_input_state(self, input_state):
+    def add_mouse_pos(self, input_state):
         return replace(input_state, mouse_pos=self.window_to_internal_mouse_pos(input_state.mouse_pos))
 
 
@@ -113,12 +112,15 @@ class Game:
             if frame_dt > MAX_FRAME_DT:
                 frame_dt = MAX_FRAME_DT
 
-            input_state = self.input_handler.collect()
-            input_state = self.to_game_input_state(input_state)
+            key_and_mouse_buttons = self.input_handler.collect()
+            input_state = self.add_mouse_pos(key_and_mouse_buttons)
+            self.input_buffer.add_frame_input(input_state)
+
             self.mouse_pos_internal = input_state.mouse_pos
 
             if input_state.quit:
                 self.done = True
+                break
 
             self.sim_accumulator += frame_dt
 
@@ -128,7 +130,8 @@ class Game:
                 self.sim_accumulator -= SIM_DT
 
             for _ in range(ticks_to_run):
-                self.update_state(input_state)
+                tick_input = self.input_buffer.consume(input_state)
+                self.update_state(tick_input)
 
             render_interpolation_factor = self.sim_accumulator / SIM_DT
             render_interpolation_factor = max(0.0, min(1.0, render_interpolation_factor))

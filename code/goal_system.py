@@ -9,7 +9,8 @@ def handle_goal(world, actor):
     target = actor_goal["target"]
 
     if mode == "walk":
-        print(f"{actor} goal: walk to {target}")
+#        print(f"{actor} goal: walk to {target}")
+        pass
 
     elif mode == "interact":
         print(f"{actor} goal: interact with {target}")
