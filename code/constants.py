@@ -1,3 +1,6 @@
+from objects import Vec2i
+
+
 # Fixed simulation rate.
 # SIM_TICKS_PER_SECOND is the number of simulation ticks that happen in each second of elapsed game time.
 # SIM_DT is the fixed amount of simulation time advanced by one tick in seconds.
@@ -26,7 +29,7 @@ WORLD_UNITS = 1024
 # that surface to the actual window/fullscreen size.
 INTERNAL_WIDTH = 640
 INTERNAL_HEIGHT = 480
-INTERNAL_RES = (INTERNAL_WIDTH, INTERNAL_HEIGHT)
+INTERNAL_RES = Vec2i(INTERNAL_WIDTH, INTERNAL_HEIGHT)
 
 # Safe y-position for recreating a windowed display after fullscreen/borderless.
 # Prevents the OS title bar from being placed above the monitor edge.

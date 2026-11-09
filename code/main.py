@@ -24,7 +24,7 @@ class Game:
 
         # Window and Display
         self.display = Display(self)
-        pygame.display.set_caption('ISOMETRIC ARPG')
+        pygame.display.set_caption('PixelSlash')
 
         # Input
         self.input_handler = InputHandler()
@@ -77,8 +77,8 @@ class Game:
 
     def window_to_internal_mouse_pos(self, window_pos):
         window_x, window_y = window_pos
-        scaled_width = self.display.internal_size[0] * self.display.scale
-        scaled_height = self.display.internal_size[1] * self.display.scale
+        scaled_width = self.display.internal_size.x * self.display.scale
+        scaled_height = self.display.internal_size.y * self.display.scale
         x_offset = (self.display.window_size[0] - scaled_width) // 2
         y_offset = (self.display.window_size[1] - scaled_height) // 2
         internal_x = (window_x - x_offset) // self.display.scale
@@ -92,8 +92,8 @@ class Game:
 
     def draw(self, render_interpolation_factor):
         self.state.draw(self.display.render_surface, render_interpolation_factor)
-        scaled_width = (self.display.internal_size[0] * self.display.scale)
-        scaled_height = (self.display.internal_size[1] * self.display.scale)
+        scaled_width = (self.display.internal_size.x * self.display.scale)
+        scaled_height = (self.display.internal_size.y * self.display.scale)
         x_offset = (self.display.window_size[0] - scaled_width) // 2
         y_offset = (self.display.window_size[1] - scaled_height) // 2
         scaled_surface = pygame.transform.scale_by(self.display.render_surface, self.display.scale)

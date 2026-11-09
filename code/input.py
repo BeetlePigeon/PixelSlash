@@ -30,7 +30,7 @@ class InputHandler:
 
             if event.type == pygame.KEYDOWN:
                 keys_pressed.add(event.key)
-                if event.key == binding["QUIT"]:
+                if event.key == binding["ESCAPE"]:
                     quit_game = True
 
             if event.type == pygame.KEYUP:

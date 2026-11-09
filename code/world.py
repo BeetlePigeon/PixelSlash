@@ -23,13 +23,21 @@ class World:
         self.movement_footprint = {}
         self.motion_state = {}
         self.sprite = {}
+        self.click_box = {}
         self.skills = {}
 
         # Actor Setup
         self.player = self.spawn_player()
 
         ## Camera
-        self.world_camera = Camera(self.player)
+        self.world_camera = Camera()
+        self.world_camera.center_on(
+            self.transform[self.player].cpos,
+            self.game.display.internal_size
+        )
+
+        # Debug
+        self.spawn_player(spawn_tile=Vec2i(1, 3))
 
 
     def spawn_player(self, spawn_tile=None):

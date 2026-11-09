@@ -1,6 +1,7 @@
-import pygame
-from sprite_system import sprite_system
+from objects import Vec2i
+from sprite_system import sprite_system, interpolate_cpos
 from goal_system import goal_system, set_goal
+from coordinates import screen_to_world
 
 
 class State:
@@ -61,7 +62,9 @@ class StateGameplay(State):
             return
 
         else:
-            target = self.get_hovered_target(mouse_pos)
+            world_pos = screen_to_world(Vec2i(mouse_pos[0], mouse_pos[1]), world.world_camera.position)
+            target = self.get_hovered_target(world_pos)
+            print(world_pos)
 
             if not target:
                 set_goal(world, actor=player, target=mouse_pos, mode="walk")
@@ -76,13 +79,9 @@ class StateGameplay(State):
     def get_hovered_target(self, pos):
         world = self.game.world
 
-        for actor in world.actor:
-            if actor.collidepoint(pos):
-                return actor
-
-        for obj in world.object:
-            if obj.collidepoint(pos):
-                return obj
+        for entity, rect in sorted(world.click_box.items()):
+            if rect.collidepoint(pos):
+                return entity
 
         return None
 
@@ -102,8 +101,15 @@ class StateGameplay(State):
 
 
     def draw(self, surface, render_alpha):
-        # Align the camera, then draw tiles, then draw actors, then draw UI on top.
-        #camera_system(self.game.world, surface, render_alpha)
-        #tile_render_system(self.game.world, surface, render_alpha)
+        """Center the camera on the player's rendered position, then draw tile layer, actor layer, and finally UI layer."""
+        # Get the player's position at the moment being rendered.
+        world = self.game.world
+        player_transform = world.transform[world.player]
+        player_render_pos = interpolate_cpos(player_transform.prev_cpos, player_transform.cpos, render_alpha)
+
+        # Center the camera on that position.
+        viewport_size = Vec2i(*surface.get_size())
+        world.world_camera.center_on(player_render_pos, viewport_size)
+
+        # Draw the world using the updated camera position.
         sprite_system(self.game.world, surface, render_alpha)
-        #self.gameplay_ui.draw(surface)

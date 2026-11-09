@@ -4,6 +4,7 @@ try:
     import numpy as np
 except ImportError:
     np = None
+from support import Vec2i
 from constants import INTERNAL_HEIGHT, INTERNAL_WIDTH, INTERNAL_RES, WINDOW_TITLEBAR_SAFE_Y
 
 
@@ -16,7 +17,7 @@ class Display:
         self.internal_width = INTERNAL_WIDTH
         self.internal_height = INTERNAL_HEIGHT
         self.internal_size = INTERNAL_RES
-        self.render_surface = pygame.Surface(self.internal_size)
+        self.render_surface = pygame.Surface((self.internal_size.x, self.internal_size.y))
         self.display_modes = [
             "windowed",
             "borderless",

@@ -31,10 +31,12 @@ def sprite_system(world, surface, render_alpha):
 
         pos = interpolate_cpos(transform.prev_cpos, transform.cpos, render_alpha)
 
-        screen_x, screen_y = world_to_screen(
+        screen_pos = world_to_screen(
             pos,
             world.world_camera.position,
         )
+
+        screen_x, screen_y = screen_pos.x, screen_pos.y
 
         image = sprite["image"]
         sprite_offset = get_sprite_offset(image, sprite["anchor"])

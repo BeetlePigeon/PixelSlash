@@ -1,3 +1,6 @@
+from objects import Vec2i
+
+
 def goal_system(world):
     for actor in world.goal:
         handle_goal(world, actor)
@@ -9,8 +12,10 @@ def handle_goal(world, actor):
     target = actor_goal["target"]
 
     if mode == "walk":
-#        print(f"{actor} goal: walk to {target}")
-        pass
+        target_pos = Vec2i(target[0], target[1])
+        cpos = world.transform[actor].cpos
+        direction = target_pos - cpos
+        cpos += direction
 
     elif mode == "interact":
         print(f"{actor} goal: interact with {target}")
