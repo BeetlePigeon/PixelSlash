@@ -91,6 +91,8 @@ class Game:
 
 
     def draw(self, render_interpolation_factor):
+        self.display.render_surface.fill((0, 0, 0))
+
         self.state.draw(self.display.render_surface, render_interpolation_factor)
         scaled_width = (self.display.internal_size.x * self.display.scale)
         scaled_height = (self.display.internal_size.y * self.display.scale)

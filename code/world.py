@@ -31,13 +31,10 @@ class World:
 
         ## Camera
         self.world_camera = Camera()
-        self.world_camera.center_on(
-            self.transform[self.player].cpos,
-            self.game.display.internal_size
-        )
+        self.world_camera.center_on(self.transform[self.player].cpos)
 
         # Debug
-        self.spawn_player(spawn_tile=Vec2i(1, 3))
+        self.spawn_player(spawn_tile=Vec2i(1, 0))
 
 
     def spawn_player(self, spawn_tile=None):

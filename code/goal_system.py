@@ -2,7 +2,7 @@ from objects import Vec2i
 
 
 def goal_system(world):
-    for actor in world.goal:
+    for actor in sorted(list(world.goal)):
         handle_goal(world, actor)
 
 
@@ -12,10 +12,12 @@ def handle_goal(world, actor):
     target = actor_goal["target"]
 
     if mode == "walk":
-        target_pos = Vec2i(target[0], target[1])
-        cpos = world.transform[actor].cpos
-        direction = target_pos - cpos
-        cpos += direction
+        transform = world.transform[actor]
+        transform.cpos = target
+        transform.prev_cpos = target
+
+        del world.goal[actor]
+        print(f"Goal: reached {target}")
 
     elif mode == "interact":
         print(f"{actor} goal: interact with {target}")

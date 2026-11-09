@@ -62,12 +62,11 @@ class StateGameplay(State):
             return
 
         else:
-            world_pos = screen_to_world(Vec2i(mouse_pos[0], mouse_pos[1]), world.world_camera.position)
+            world_pos = screen_to_world(Vec2i(mouse_pos[0], mouse_pos[1]), world.world_camera.position, self.game.display.internal_size)
             target = self.get_hovered_target(world_pos)
-            print(world_pos)
 
             if not target:
-                set_goal(world, actor=player, target=mouse_pos, mode="walk")
+                set_goal(world, actor=player, target=world_pos, mode="walk")
 
             if target in world.actor:
                 set_goal(world, actor=player, target=target, mode="use_skill", skill=skill)
@@ -108,8 +107,7 @@ class StateGameplay(State):
         player_render_pos = interpolate_cpos(player_transform.prev_cpos, player_transform.cpos, render_alpha)
 
         # Center the camera on that position.
-        viewport_size = Vec2i(*surface.get_size())
-        world.world_camera.center_on(player_render_pos, viewport_size)
+        world.world_camera.center_on(player_render_pos)
 
         # Draw the world using the updated camera position.
         sprite_system(self.game.world, surface, render_alpha)

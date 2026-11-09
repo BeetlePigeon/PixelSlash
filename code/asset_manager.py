@@ -15,7 +15,8 @@ class AssetManager:
 
     def load(self):
         # Player Characters
-        self.images["player"] = self.load_image("characters", "playertest.png")
+#        self.images["player"] = self.load_image("characters", "playertest.png")
+        self.images["player"] = self.load_image("tiles", "water.png")
 
         # Enemies
         self.images["enemy_normal"] = self.load_image("enemies", "enemy_normal.png")

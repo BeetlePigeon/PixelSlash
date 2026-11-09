@@ -14,7 +14,7 @@ SIM_DT = 1.0 / SIM_TICKS_PER_SECOND
 # at once when the game resumes.
 MAX_FRAME_DT = 0.25
 
-# Both width and height of one isometric tile in pixels.
+# The width one isometric tile in pixels. Tile height is TILE_PIXELS // 2.
 TILE_PIXELS = 32
 
 # WORLD_UNITS is the number of canonical world units per tile.

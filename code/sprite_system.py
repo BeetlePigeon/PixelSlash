@@ -24,6 +24,7 @@ def get_sprite_offset(image, anchor):
 
 
 def sprite_system(world, surface, render_alpha):
+    viewport_size = Vec2i(*surface.get_size())
     draw_list = []
 
     for entity, sprite in world.sprite.items():
@@ -34,6 +35,7 @@ def sprite_system(world, surface, render_alpha):
         screen_pos = world_to_screen(
             pos,
             world.world_camera.position,
+            viewport_size
         )
 
         screen_x, screen_y = screen_pos.x, screen_pos.y
