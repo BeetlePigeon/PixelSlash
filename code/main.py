@@ -75,7 +75,6 @@ class Game:
         return replace(input_state, mouse_pos=self.window_to_internal_mouse_pos(input_state.mouse_pos))
 
 
-    # window_to_internal_mouse_pos converts the mouse position in the pygame window into coordinates of the internal rendering surface.
     def window_to_internal_mouse_pos(self, window_pos):
         window_x, window_y = window_pos
         scaled_width = self.display.internal_size[0] * self.display.scale

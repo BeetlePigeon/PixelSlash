@@ -33,7 +33,7 @@ class Display:
         self.window = None
         self.toggle = True
 
-        self.fps_caps = [30, 180, 0]  # 0 = uncapped.
+        self.fps_caps = [30, 60, 90, 120, 180, 240, 300, 0]  # 0 = uncapped.
         self.windowed_scales = self.build_windowed_scales()
 
         self.debug_font = pygame.font.Font(None, 18)
@@ -60,6 +60,7 @@ class Display:
         )
 
         return x, y
+
 
     def set_next_window_position(self, position):
         x, y = position
@@ -148,6 +149,7 @@ class Display:
         # Pygame may return the actual display/window size.
         self.window_size = self.window.get_size()
 
+
     def set_windowed_scale(self, scale: int):
         self.windowed_scale = self.clamp_windowed_scale(scale)
         self.windowed_scale_index = self.windowed_scales.index(
@@ -158,6 +160,7 @@ class Display:
             self.apply_display_settings()
 
         self.save_display_settings_to_game_settings()
+
 
     def cycle_windowed_scale(self):
         self.windowed_scale_index = (
@@ -170,10 +173,12 @@ class Display:
 
         self.set_windowed_scale(new_scale)
 
+
     def toggle_vsync(self):
         self.vsync_enabled = not self.vsync_enabled
         self.apply_display_settings()
         self.save_display_settings_to_game_settings()
+
 
     def cycle_display_mode(self):
         self.display_mode_index = (
@@ -195,6 +200,7 @@ class Display:
 
         self.fps_cap = self.fps_caps[self.fps_cap_index]
         self.save_display_settings_to_game_settings()
+
 
     def build_windowed_scales(self):
         desktop_width, desktop_height = self.get_desktop_size()
@@ -470,52 +476,3 @@ class Display:
         })
 
         self.game.save_settings()
-
-
-    def set_camera_zoom_index(self, zoom_index):
-        camera = self.game.world.world_camera.camera
-        zoom_levels = camera["zoom_levels"]
-
-        zoom_index = max(
-            0,
-            min(len(zoom_levels) - 1, zoom_index),
-        )
-
-        camera["zoom_index"] = zoom_index
-
-        zoom_num, zoom_den = zoom_levels[zoom_index]
-
-        camera["zoom_num"] = zoom_num
-        camera["zoom_den"] = zoom_den
-        camera["zoom_target_num"] = zoom_num
-        camera["zoom_target_den"] = zoom_den
-        camera["zoom_target_fp"] = (
-                zoom_num * 1024 // max(1, zoom_den)
-        )
-
-        if not camera.get("zoom_smooth", True):
-            camera["zoom_current_fp"] = camera["zoom_target_fp"]
-
-
-    def zoom_camera_in(self):
-        camera = self.game.world.world_camera.camera
-
-        self.set_camera_zoom_index(
-            camera["zoom_index"] + 1,
-        )
-
-
-    def zoom_camera_out(self):
-        camera = self.game.world.world_camera.camera
-
-        self.set_camera_zoom_index(
-            camera["zoom_index"] - 1,
-        )
-
-
-    def set_camera_zoom_smooth(self, enabled):
-        camera = self.game.world.world_camera.camera
-        camera["zoom_smooth"] = enabled
-
-        if not enabled:
-            camera["zoom_current_fp"] = camera["zoom_target_fp"]

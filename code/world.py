@@ -9,9 +9,6 @@ class World:
         self.entity_manager = entity_manager
         self.tick = 0
 
-        ## Camera
-        self.world_camera = Camera(self)
-
         # Area Setup: 0=free, 1=blocked
         self.map = [
             [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -29,10 +26,16 @@ class World:
         self.skills = {}
 
         # Actor Setup
-        self.player = self.spawn_player(Vec2i(0, 0))
+        self.player = self.spawn_player()
+
+        ## Camera
+        self.world_camera = Camera(self.player)
 
 
-    def spawn_player(self, spawn_tile):
+    def spawn_player(self, spawn_tile=None):
+        if not spawn_tile:
+            spawn_tile = Vec2i(0, 0)
+
         eid = self.entity_manager.create()
 
         self.actor.add(eid)
@@ -44,7 +47,7 @@ class World:
         }
         self.sprite[eid] = {
             "image": self.game.asset_manager.images["player"],
-            "anchor": "bottom_center",
+            "anchor": "center",
             "z": 0,
         }
         self.skills[eid] = {
