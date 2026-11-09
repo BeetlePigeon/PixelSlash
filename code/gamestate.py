@@ -112,4 +112,4 @@ class StateGameplay(State):
 
         # Draw the world layer by layer using the updated camera position.
         renderables = world.sprite.items()
-        sprite_system(self.game.world, surface, renderables, render_alpha)
+        sprite_system(self.game.world, surface, render_alpha)

@@ -23,11 +23,11 @@ def get_sprite_offset(image, anchor):
         )
 
 
-def sprite_system(world, surface, sprites, render_alpha):
+def sprite_system(world, surface, render_alpha):
     viewport_size = Vec2i(*surface.get_size())
     draw_list = []
 
-    for eid, sprite in sprites:
+    for eid, sprite in world.sprite.items():
         transform = world.transform[eid]
 
         interp_cpos = interpolate_cpos(transform.prev_cpos, transform.cpos, render_alpha)
