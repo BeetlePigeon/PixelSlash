@@ -53,10 +53,8 @@ class World:
             "controller": None,
             "last_delta": Vec2i(0, 0)
         }
-        image = self.game.asset_manager.images["player"]
         self.sprite[eid] = {
-            "image": image,
-            "anchor": "bottom_center",
+            "image_metadata": self.game.asset_manager.image_metadata["player"],
             "depth_offset": 0,
             "priority": RenderPriority.ACTOR,
         }
@@ -71,9 +69,9 @@ class World:
         for y, row in enumerate(self.map):
             for x, tile_type in enumerate(row):
                 if tile_type == 0:
-                    image = self.game.asset_manager.images["block"]
+                    image_metadata = self.game.asset_manager.image_metadata["block"]
                 elif tile_type == 1:
-                    image = self.game.asset_manager.images["water"]
+                    image_metadata = self.game.asset_manager.image_metadata["water"]
 
                 tile_location = Vec2i(x, y)
                 eid = self.entity_manager.create()
@@ -81,8 +79,7 @@ class World:
                 self.tile.add(eid)
                 self.transform[eid] = Transform(cpos=tile_center(tile_location), prev_cpos=tile_center(tile_location), elevation=0)
                 self.sprite[eid] = {
-                    "image": image,
-                    "anchor": "center",
-                    "depth_offset": - image.get_height() // 2,
+                    "image_metadata": image_metadata,
+                    "depth_offset": - image_metadata["image"].get_height() // 2,
                     "priority": RenderPriority.FLOOR,
                 }

@@ -1,5 +1,7 @@
+#from constants import block_sprite_offset
 from objects import Vec2i
 from coordinates import world_to_screen
+import pygame
 
 
 def interpolate_cpos(prev, curr, alpha):
@@ -38,8 +40,9 @@ def sprite_system(world, surface, render_alpha):
             viewport_size
         )
 
-        image = sprite["image"]
-        sprite_offset = get_sprite_offset(image, sprite["anchor"])
+        sprite_data = sprite["image_metadata"]
+        image = sprite_data["image"]
+        sprite_offset = sprite_data["anchor"]
 
         # Determine rendering order
         depth = screen_pos.y + sprite["depth_offset"]
@@ -58,5 +61,13 @@ def sprite_system(world, surface, render_alpha):
     # Sort by depth, tiebreak by priority, tiebreak again by eid
     draw_list.sort(key=lambda r: (r[0], r[1], r[2]))
 
-    for _, _, _, image, pos in draw_list:
+    for _depth, _priority, _eid, image, pos in draw_list:
         surface.blit(image, pos)
+
+    player_transform = world.transform[world.player]
+    player_screen_pos = world_to_screen(player_transform.cpos, world.world_camera.position, viewport_size)
+    pygame.draw.rect(
+        surface,
+        (0, 255, 0),
+        (player_screen_pos.x, player_screen_pos.y - 1, 1, 1)
+    )

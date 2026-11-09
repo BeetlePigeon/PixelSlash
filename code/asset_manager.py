@@ -1,10 +1,11 @@
 from pathlib import Path
+from sprite_anchor import SpriteAnchor
 import pygame
 
 
 class AssetManager:
     def __init__(self):
-        self.images = {}
+        self.image_metadata = {}
 
         base_path = Path(__file__).resolve().parent
         self.graphics_path = base_path.parent / "sprites"
@@ -17,28 +18,18 @@ class AssetManager:
 
     def load(self):
         # Player Characters
-        self.images["player"] = self.load_image("characters", "player.png")
-
-        # Enemies
-        self.images["enemy_normal"] = self.load_image("enemies", "enemy_normal.png")
-        self.images["enemy_angry"] = self.load_image("enemies", "enemy_angry.png")
-        self.images["enemy_attack"] = self.load_image("enemies", "enemy_attack.png")
-
-        # Projectiles
-        self.images["fireball"] = self.load_image("projectiles", "fireball.png")
-        self.images["flame_hazard"] = self.load_image("projectiles", "flame_hazard.png")
-        self.images["frozen_orb"] = self.load_image("projectiles", "frozen_orb.png")
-        self.images["ice_shard"] = self.load_image("projectiles", "ice_shard.png")
-        self.images["test_projectile"] = self.load_image("projectiles", "test_projectile.png")
-        self.images["magnet"] = self.load_image("projectiles", "magnet.png")
-        self.images["meteor"] = self.load_image("projectiles", "meteor.png")
+        self.image_metadata["player"] = {
+            "image": self.load_image("characters", "player.png"),
+            "anchor": SpriteAnchor.HUMAN
+        }
 
         # Tiles
-        self.images["block"] = self.load_image("tiles", "block.png")
-        self.images["water"] = self.load_image("tiles", "water.png")
+        self.image_metadata["block"] = {
+            "image": self.load_image("tiles", "block.png"),
+            "anchor": SpriteAnchor.FLOOR_BLOCK
+        }
 
-        # UI
-        self.images["button"] = self.load_image("ui", "button.png")
-
-        # Debug
-        self.images["highlighted_tile"] = self.load_image("debug", "highlighted_tile.png")
+        self.image_metadata["water"] = {
+            "image": self.load_image("tiles", "water.png"),
+            "anchor": SpriteAnchor.FLOOR_BLOCK
+        }
