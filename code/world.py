@@ -41,14 +41,23 @@ class World:
         # transform[eid] -> Transform
         #
         # cpos: Current world position in longitudinal plane in world units.
-        # prev_cpos: Position from the previous simulation state,
-        # used for render interpolation.
+        # prev_cpos: Position from the previous simulation state. Used
+        #   for render interpolation. Gets updated at the start of each
+        #   tick.
         # elevation: Height used to vertically offset the entity.
         #
         # cpos and prev_cpos are Vec2i objects.
-        self.movement_footprint = {}    # Tile occupying shape.
-        self.motion_state = {}          # Movement controller and state.
-        self.skills = {}
+        self.walk_speed = {}        # Base movement speed.
+        # walk_speed[eid] -> int
+        #
+        # Speed represents number of world units moved per tick.
+        self.skills = {}            # Skill slot bindings.
+        # skills[eid] -> {
+        #   0: "attack",    # Skill equipped to slot 1 (LMB for player)
+        #   1: "block",     # Skill equipped to slot 2 (RMB for player)
+        #   2: "dash",      # Skill equipped to slot 3 (which is spacebar for player)
+        #   ...,            # And so on...
+        # }
 
         # Presentation and interaction components
         self.sprite = {}        # Sprite asset and rendering properties.
@@ -85,16 +94,12 @@ class World:
 
         self.actor.add(eid)
         self.transform[eid] = Transform(cpos=tile_center(spawn_tile), prev_cpos=tile_center(spawn_tile), elevation=0)
-        self.movement_footprint[eid] = "plus5"
-        self.motion_state[eid] = {
-            "controller": None,
-            "last_delta": Vec2i(0, 0)
-        }
         self.sprite[eid] = {
             "image_metadata": self.game.asset_manager.image_metadata["player"],
             "depth_offset": 0,
             "priority": RenderPriority.ACTOR,
         }
+        self.walk_speed[eid] = 225
         self.skills[eid] = {
             0: "attack",
             1: "counter",

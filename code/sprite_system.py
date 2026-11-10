@@ -1,6 +1,5 @@
 from objects import Vec2i
 from coordinates import world_to_screen
-import pygame
 
 
 def interpolate_cpos(prev, curr, alpha):

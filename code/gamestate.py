@@ -1,4 +1,5 @@
 from objects import Vec2i
+from snapshot_system import snapshot_system
 from sprite_system import sprite_system, interpolate_cpos
 from goal_system import goal_system, set_goal
 from coordinates import screen_to_world
@@ -93,6 +94,7 @@ class StateGameplay(State):
         self.build_player_intents(input_state)
 
         # Combat logic
+#        snapshot_system(self.game.world)
         goal_system(self.game.world)
 
         # Cleanup Entities

@@ -1,4 +1,5 @@
-from objects import Vec2i
+from support import scale_vec_to_mag
+import math
 
 
 def goal_system(world):
@@ -13,11 +14,17 @@ def handle_goal(world, actor):
 
     if mode == "walk":
         transform = world.transform[actor]
-        transform.cpos = target
-        transform.prev_cpos = target
+        speed = world.walk_speed[actor]
+        direction = target - transform.cpos
+        distance = math.sqrt(direction.x**2 + direction.y**2)
 
-        del world.goal[actor]
-        print(f"Goal: reached {target}")
+        if distance <= speed:
+            transform.cpos = target
+            del world.goal[actor]
+            print(f"Goal: reached {target}")
+        else:
+            new_cpos = transform.cpos + scale_vec_to_mag(direction, speed)
+            transform.cpos = new_cpos
 
     elif mode == "interact":
         print(f"{actor} goal: interact with {target}")
