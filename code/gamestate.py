@@ -94,7 +94,7 @@ class StateGameplay(State):
         self.build_player_intents(input_state)
 
         # Combat logic
-#        snapshot_system(self.game.world)
+        snapshot_system(self.game.world)
         goal_system(self.game.world)
 
         # Cleanup Entities

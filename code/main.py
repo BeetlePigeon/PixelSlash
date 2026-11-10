@@ -138,7 +138,6 @@ class Game:
             render_interpolation_factor = max(0.0, min(1.0, render_interpolation_factor))
 
             self.draw(render_interpolation_factor)
-            print(self.world.goal)
 
 
 if __name__ == '__main__':
