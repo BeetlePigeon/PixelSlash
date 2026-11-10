@@ -56,7 +56,7 @@ class StateGameplay(State):
     def handle_left_click(self, mouse_pos):
         world = self.game.world
         player = world.player
-        skill = world.skills[player]["LMB"]
+        skill = world.skills[player][0]
 
         if self.mouse_over_ui(mouse_pos):
             return

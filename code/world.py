@@ -5,22 +5,59 @@ from render_priority import RenderPriority
 
 
 class World:
+    """
+    Container for the game world's entities, components, and map.
+
+    Uses a lightweight entity-component architecture:
+        - An entity is identified by a unique integer ID (eid).
+        - Components store the data associated with an entity.
+        - Systems read and modify components to implement game behavior.
+
+    Components are stored in sets or dictionaries keyed by eid.
+    A single entity may and almost always will belong to multiple component collections.
+
+    World also owns the map, simulation tick counter, player entity ID, and camera.
+    """
     def __init__(self, game, entity_manager):
         self.game = game
         self.entity_manager = entity_manager
         self.tick = 0
 
         # Component Setup
-        self.tile = set()
-        self.actor = set()
-        self.object = set()
-        self.goal = {}
-        self.transform = {}
-        self.movement_footprint = {}
-        self.motion_state = {}
-        self.sprite = {}
-        self.click_box = {}
+        """Each collection is indexed by eid.
+
+        Sets are tag components: they indicate membership or classification.
+        Dictionaries are data components: eid -> component data
+
+        Entities only receive the components relevant to their behavior."""
+        # Tag components
+        self.tile = set()       # Entities representing map tiles.
+        self.actor = set()      # Entities capable of acting/moving.
+        self.object = set()     # World objects, distinct from actors/tiles.
+
+        # Gameplay components
+        self.goal = {}                  # Current actor objective.
+        self.transform = {}             # World position and elevation.
+        # transform[eid] -> Transform
+        #
+        # cpos: Current world position in longitudinal plane in world units.
+        # prev_cpos: Position from the previous simulation state,
+        # used for render interpolation.
+        # elevation: Height used to vertically offset the entity.
+        #
+        # cpos and prev_cpos are Vec2i objects.
+        self.movement_footprint = {}    # Tile occupying shape.
+        self.motion_state = {}          # Movement controller and state.
         self.skills = {}
+
+        # Presentation and interaction components
+        self.sprite = {}        # Sprite asset and rendering properties.
+        # sprite[eid] -> {
+        #   "image_metadata": ...,  # Shared asset data: image + anchor.
+        #   "depth_offset": ...,    # Screen-pixel adjustment to sorting Y.
+        #   "priority": ...,        # RenderPriority; breaks depth ties.
+        # }
+        self.click_box = {}     # Rectangles used for detecting mouse cursor overlap.
 
         # Map Setup: 0=blocked, 1=free
         self.map = [
@@ -59,7 +96,9 @@ class World:
             "priority": RenderPriority.ACTOR,
         }
         self.skills[eid] = {
-            "LMB": "attack",
+            0: "attack",
+            1: "counter",
+            2: "dash",
         }
 
         return eid
