@@ -1,4 +1,4 @@
-from support import norm, scale_vec_to_mag, tile_center
+from support import norm, scale_vec_to_mag, tile_from_cpos, tile_center
 from occupancy_utils import get_footprint_tiles, add_occupancy, remove_occupancy
 
 
@@ -8,12 +8,11 @@ def movement_system(world):
         budget = controller.speed
         nav = world.navigation[actor]
         waypoints = nav.waypoints
-        old_pos = world.transform[actor].cpos
 
         while budget > 0 and waypoints:
             current_waypoint = waypoints[0]
 
-            if norm(current_waypoint - old_pos) == 0:
+            if norm(current_waypoint - world.transform[actor].cpos) == 0:
                 waypoints.pop(0)
                 continue
 
@@ -24,14 +23,15 @@ def movement_system(world):
                 on_block()
                 break
 
+            old_pos = world.transform[actor].cpos
             candidate, displacement = result
-            world.transform[actor].cpos += displacement
-            new_pos = world.transform[actor].cpos
+            new_pos = old_pos + displacement
 
-            if tile_center(new_pos) != tile_center(old_pos):
+            if tile_from_cpos(new_pos) != tile_from_cpos(old_pos):
                 remove_occupancy(world, actor, old_pos)
                 add_occupancy(world, actor, new_pos)
 
+            world.transform[actor].cpos = new_pos
             budget -= norm(displacement)
             current_waypoint = waypoints[0]
 
