@@ -99,7 +99,7 @@ class World:
             "depth_offset": 0,
             "priority": RenderPriority.ACTOR,
         }
-        self.walk_speed[eid] = 225
+        self.walk_speed[eid] = 122
         self.skills[eid] = {
             0: "attack",
             1: "counter",

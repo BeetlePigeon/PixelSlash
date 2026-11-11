@@ -6,7 +6,7 @@ from objects import Vec2i
 # SIM_DT is the fixed amount of simulation time advanced by one tick in seconds.
 # Game logic advances in fixed-size ticks so movement, cooldowns, actions,
 # status durations, and effect timings are stable regardless of render FPS.
-SIM_TICKS_PER_SECOND = 60
+SIM_TICKS_PER_SECOND = 120
 SIM_DT = 1.0 / SIM_TICKS_PER_SECOND
 
 # Maximum real frame time that can be fed into the fixed-step accumulator.

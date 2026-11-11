@@ -89,12 +89,13 @@ class StateGameplay(State):
     def update(self, input_state):
         self.game.world.tick += 1
 
+        snapshot_system(self.game.world)
+
         # Player intents
         player = self.game.world.player
         self.build_player_intents(input_state)
 
         # Combat logic
-        snapshot_system(self.game.world)
         goal_system(self.game.world)
 
         # Cleanup Entities

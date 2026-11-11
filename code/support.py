@@ -21,17 +21,6 @@ def scale_vec_to_mag(vector: Vec2i, target_mag: int) -> Vec2i:
     scaling_factor = target_mag / current_mag
 
     return Vec2i(
-        int(vector.x * scaling_factor),
-        int(vector.y * scaling_factor),
+        round(vector.x * scaling_factor),
+        round(vector.y * scaling_factor),
     )
-
-
-def scale_vec_by_factor(vector: Vec2i, factor: int) -> Vec2i:
-    return Vec2i(
-        vector.x * factor,
-        vector.y * factor,
-    )
-
-
-def clamp(value: int, min_value: int, max_value: int) -> int:
-    return max(min_value, min(value, max_value))
