@@ -1,4 +1,4 @@
-from support import tile_center
+from support import tile_center, tile_from_cpos
 
 
 def set_goal(world, actor, target, mode, skill=None):
@@ -12,14 +12,15 @@ def set_goal(world, actor, target, mode, skill=None):
     mode: Is either 'walk', 'interact' or 'use_skill'
     skill: The skill to be used when mode is set to 'use_skill'.
     """
-    if "mode" == "walk":
-        target = tile_center(target)    # Clicked point on ground should target its tile center
+    if mode == "walk":
+        target = tile_center(tile_from_cpos(target))    # Clicked point on ground should target its tile center
 
     world.goal[actor] = {
         "mode": mode,
         "target": target,
         "skill": skill
     }
+    world.navigation[actor].waypoints.clear()
 
 
 def handle_goal(world, actor):

@@ -1,8 +1,9 @@
-from objects import Vec2i
 from snapshot_system import snapshot_system
-from sprite_system import sprite_system, interpolate_cpos
+from navigation_system import navigation_system
 from movement_system import movement_system
 from action_system import action_system
+from sprite_system import sprite_system, interpolate_cpos
+from objects import Vec2i
 from goals import set_goal
 from coordinates import screen_to_world
 
@@ -97,9 +98,12 @@ class StateGameplay(State):
         player = self.game.world.player
         self.build_player_intents(input_state)
 
-        # Phase 2: Perform actions based on goals.
-        action_system(self.game.world)
+        # Phase 2: Navigate towards goals.
+        navigation_system(self.game.world)
         movement_system(self.game.world)
+
+        # Phase 3: Perform actions if in range of goal.
+        action_system(self.game.world)
 
         # Phase 3: Cleanup
         self.game.entity_manager.cleanup(self.game.world)

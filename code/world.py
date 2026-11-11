@@ -2,7 +2,7 @@ from support import tile_center
 from objects import Vec2i, Transform
 from camera import Camera
 from render_priority import RenderPriority
-from navigator import Navigator
+from navigation import Navigator
 from controllers import WalkController
 from occupancy_utils import add_occupancy
 
@@ -59,7 +59,7 @@ class World:
         #
         # cpos and prev_cpos are Vec2i objects.
         self.footprint = {}         # The space occupying footprint of entity.
-        self.navigator = {}
+        self.navigation = {}
         self.walk_controller = {}   # What actors use to navigate to goal targets.
         # walk_controller[eid] = WalkController()
         #
@@ -84,7 +84,16 @@ class World:
         # Map Setup: 0=blocked, 1=free
         self.map = [
             [0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0],
-            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0]
+            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
         ]
         self.load_map()
 
@@ -96,32 +105,30 @@ class World:
         self.world_camera.center_on(self.transform[self.player].cpos)
 
         # Debug
-        self.spawn_player(spawn_tile=Vec2i(1, 0))
+        self.spawn_player(spawn_tile=Vec2i(0, 0))
 
 
     def spawn_player(self, spawn_tile=None):
         if spawn_tile is None:
-            spawn_tile = Vec2i(0, 0)
+            spawn_tile = Vec2i(5, 5)
 
         eid = self.entity_manager.create()
 
         self.actor.add(eid)
         self.transform[eid] = Transform(cpos=tile_center(spawn_tile), prev_cpos=tile_center(spawn_tile), elevation=0)
         self.footprint[eid] = "plus"
+        add_occupancy(self, eid, tile_center(spawn_tile))
+        self.navigation[eid] = Navigator([])
+        self.walk_controller[eid] = WalkController()
+        self.skills[eid] = {
+            0: "attack",
+        }
         self.sprite[eid] = {
             "image_metadata": self.game.asset_manager.image_metadata["player"],
             "depth_offset": 0,
             "priority": RenderPriority.ACTOR,
         }
-        self.navigator[eid] = Navigator([])
-        self.walk_controller[eid] = WalkController()
-        self.skills[eid] = {
-            0: "attack",
-            1: "counter",
-            2: "dash",
-        }
 
-        add_occupancy()
         return eid
 
 

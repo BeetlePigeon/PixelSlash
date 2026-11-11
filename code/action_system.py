@@ -1,2 +1,2 @@
-def action_system():
+def action_system(world):
     pass

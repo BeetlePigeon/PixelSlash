@@ -30,7 +30,9 @@ def get_footprint_tiles(pos, footprint):
     return center, wings
 
 
-def remove_occupancy(world, actor, center, wings):
+def remove_occupancy(world, actor, pos):
+    center, wings = get_footprint_tiles(pos, world.footprint[actor])
+
     world.center_occupancy[center].remove(actor)
     if not world.center_occupancy[center]:  # Don't leave behind empty sets.
         del world.center_occupancy[center]
@@ -41,7 +43,9 @@ def remove_occupancy(world, actor, center, wings):
             del world.wing_occupancy[wing]
 
 
-def add_occupancy(world, actor, center, wings):
+def add_occupancy(world, actor, pos):
+    center, wings = get_footprint_tiles(pos, world.footprint[actor])
+
     world.center_occupancy.setdefault(center, set()).add(actor)
     for wing in wings:
         world.wing_occupancy.setdefault(wing, set()).add(actor)

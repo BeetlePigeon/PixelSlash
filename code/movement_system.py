@@ -1,4 +1,4 @@
-from support import norm, scale_vec_to_mag
+from support import norm, scale_vec_to_mag, tile_center
 from occupancy_utils import get_footprint_tiles, add_occupancy, remove_occupancy
 
 
@@ -6,14 +6,14 @@ def movement_system(world):
     for actor in world.walk_controller:
         controller = world.walk_controller[actor]
         budget = controller.speed
-        nav = world.navigator[actor]
+        nav = world.navigation[actor]
         waypoints = nav.waypoints
-        transform = world.transform[actor]
+        old_pos = world.transform[actor].cpos
 
         while budget > 0 and waypoints:
             current_waypoint = waypoints[0]
 
-            if norm(current_waypoint - transform.cpos) == 0:
+            if norm(current_waypoint - old_pos) == 0:
                 waypoints.pop(0)
                 continue
 
@@ -25,27 +25,24 @@ def movement_system(world):
                 break
 
             candidate, displacement = result
+            world.transform[actor].cpos += displacement
+            new_pos = world.transform[actor].cpos
 
-            old_center, old_wings = get_footprint_tiles(transform.cpos, world.footprint[actor])
-            transform.cpos += displacement
-            new_center, new_wings = get_footprint_tiles(transform.cpos, world.footprint[actor])
-
-            if new_center != old_center:
-                remove_occupancy(world, actor, old_center, old_wings)
-                add_occupancy(world, actor, new_center, new_wings)
+            if tile_center(new_pos) != tile_center(old_pos):
+                remove_occupancy(world, actor, old_pos)
+                add_occupancy(world, actor, new_pos)
 
             budget -= norm(displacement)
-            current_pos = transform.cpos
             current_waypoint = waypoints[0]
 
-            if norm(current_waypoint - current_pos) == 0:
+            if norm(current_waypoint - new_pos) == 0:
                 waypoints.pop(0)
 
 
 def get_first_viable_candidate(world, actor, budget):
     controller = world.walk_controller[actor]
-    candidates = controller.get_candidates()
     pos = world.transform[actor].cpos
+    candidates = controller.generate_candidates(pos, world.navigation[actor].waypoints[0])
     for candidate in candidates:
         direction = candidate - pos
         distance = norm(direction)
