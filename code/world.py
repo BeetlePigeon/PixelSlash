@@ -2,11 +2,13 @@ from support import tile_center
 from objects import Vec2i, Transform
 from camera import Camera
 from render_priority import RenderPriority
+from navigator import Navigator
+from controllers import WalkController
+from occupancy_utils import add_occupancy
 
 
 class World:
-    """
-    Container for the game world's entities, components, and map.
+    """Container for the game world's entities, components, and map.
 
     Uses a lightweight entity-component architecture:
         - An entity is identified by a unique integer ID (eid).
@@ -35,6 +37,15 @@ class World:
         self.actor = set()      # Entities capable of acting/moving.
         self.object = set()     # World objects, distinct from actors/tiles.
 
+        self.center_occupancy = {}
+        # center_occupancy[Vec2i(9, 2)] -> {1}           # Actors 1 has their center tile at tile (9, 2).
+        self.wing_occupancy = {}
+        # wing_occupancy[Vec2i(3, 4)] -> {1, 50, 201}       # Actors 1, 50, and 201 have a wing tile at tile (3, 4).
+        self.static_occupancy = set()
+        # static_occupancy = {Vec2i(1, 1), Vec2i(2, 2)}     # Tiles (1, 1) and (2, 2) are statically obstructed.
+        #
+        # All occupancy structures are sparse.
+
         # Gameplay components
         self.goal = {}                  # Current actor objective.
         self.transform = {}             # World position and elevation.
@@ -47,10 +58,12 @@ class World:
         # elevation: Height used to vertically offset the entity.
         #
         # cpos and prev_cpos are Vec2i objects.
-        self.walk_speed = {}        # Base movement speed.
-        # walk_speed[eid] -> int
+        self.footprint = {}         # The space occupying footprint of entity.
+        self.navigator = {}
+        self.walk_controller = {}   # What actors use to navigate to goal targets.
+        # walk_controller[eid] = WalkController()
         #
-        # Speed represents number of world units moved per tick.
+        # Contains lots of cool shit.
         self.skills = {}            # Skill slot bindings.
         # skills[eid] -> {
         #   0: "attack",    # Skill equipped to slot 1 (LMB for player)
@@ -94,30 +107,34 @@ class World:
 
         self.actor.add(eid)
         self.transform[eid] = Transform(cpos=tile_center(spawn_tile), prev_cpos=tile_center(spawn_tile), elevation=0)
+        self.footprint[eid] = "plus"
         self.sprite[eid] = {
             "image_metadata": self.game.asset_manager.image_metadata["player"],
             "depth_offset": 0,
             "priority": RenderPriority.ACTOR,
         }
-        self.walk_speed[eid] = 122
+        self.navigator[eid] = Navigator([])
+        self.walk_controller[eid] = WalkController()
         self.skills[eid] = {
             0: "attack",
             1: "counter",
             2: "dash",
         }
 
+        add_occupancy()
         return eid
 
 
     def load_map(self):
         for y, row in enumerate(self.map):
             for x, tile_type in enumerate(row):
+                tile_location = Vec2i(x, y)
                 if tile_type == 0:
                     image_metadata = self.game.asset_manager.image_metadata["block"]
+                    self.static_occupancy.add(tile_location)
                 elif tile_type == 1:
                     image_metadata = self.game.asset_manager.image_metadata["water"]
 
-                tile_location = Vec2i(x, y)
                 eid = self.entity_manager.create()
 
                 self.tile.add(eid)
@@ -127,3 +144,5 @@ class World:
                     "depth_offset": - image_metadata["image"].get_height() // 2,
                     "priority": RenderPriority.FLOOR,
                 }
+
+        print(f"Set of static blockages:{self.static_occupancy}")

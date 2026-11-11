@@ -1,7 +1,9 @@
 from objects import Vec2i
 from snapshot_system import snapshot_system
 from sprite_system import sprite_system, interpolate_cpos
-from goal_system import goal_system, set_goal
+from movement_system import movement_system
+from action_system import action_system
+from goals import set_goal
 from coordinates import screen_to_world
 
 
@@ -87,18 +89,19 @@ class StateGameplay(State):
 
 
     def update(self, input_state):
+        # Initial setup: advance the simulation and snapshot entity positions for interpolated position sprite rendering.
         self.game.world.tick += 1
-
         snapshot_system(self.game.world)
 
-        # Player intents
+        # Phase 1: Generate player and AI intents, and process them into goals.
         player = self.game.world.player
         self.build_player_intents(input_state)
 
-        # Combat logic
-        goal_system(self.game.world)
+        # Phase 2: Perform actions based on goals.
+        action_system(self.game.world)
+        movement_system(self.game.world)
 
-        # Cleanup Entities
+        # Phase 3: Cleanup
         self.game.entity_manager.cleanup(self.game.world)
 
 
