@@ -1,5 +1,5 @@
 from support import tile_center, tile_from_cpos
-from goal_utils import in_range_of_goal, clear_goal
+from goal_utils import in_range_of_goal, clear_goal, get_goal_completion_range
 
 
 def set_goal(world, actor, target, mode, skill=None):
@@ -26,24 +26,32 @@ def set_goal(world, actor, target, mode, skill=None):
         "skill": skill
     }
     world.goal[actor] = goal
+    world.navigation[actor].reset()
     world.navigation[actor].goal = goal
-    set_completion_range(world, actor)
 
 
 def goal_resolution_system(world):
-    """Attempts goal action for actors is in range of their target."""
+    """Attempts goal action for actors in range of their target."""
     for actor, goal in list(world.goal.items()):
         goal = world.goal[actor]
         mode = goal["mode"]
         target = goal["target"]
 
-        current_tile = tile_from_cpos(world.transform[actor].cpos)
-        target_tile = tile_from_cpos(target) if mode == "walk" else tile_from_cpos(world.transform[target].cpos)
-        completion_range = world.navigation[actor].completion_range
+        if mode == "walk":
+            goal_reached = world.transform[actor].cpos == target
+        else:
+            current_tile = tile_from_cpos(world.transform[actor].cpos)
+            target_tile = tile_from_cpos(world.transform[target].cpos)
+            completion_range = get_goal_completion_range(world, actor)
+            goal_reached = in_range_of_goal(current_tile, target_tile, completion_range)
 
-        if in_range_of_goal(current_tile, target_tile, completion_range):
+        if goal_reached:
             attempt_goal(world, actor)
             continue
+
+        navigation_failed = world.navigation[actor].failed
+        if navigation_failed:
+            clear_goal(world, actor)
 
 
 def attempt_goal(world, actor):
@@ -71,20 +79,3 @@ def attempt_goal(world, actor):
     elif mode == "use_skill":
         skill = actor_goal["skill"]
         print(f"Goal completion not implemented: {mode}")
-
-
-def set_completion_range(world, actor):
-    """Sets 'navigator.completion_range' to the minimum tile distance the actor can be to initiate the goal action.
-    For 'walk' it's 0.
-    For 'interact' it's 1.
-    For 'use_skill' it's determined by the skill."""
-    goal = world.goal[actor]
-    mode = goal["mode"]
-    nav = world.navigation[actor]
-
-    if mode == "walk":
-        nav.completion_range = 0
-    if mode == "interact":
-        nav.completion_range = 1
-    if mode == "use_skill":
-        raise ValueError(f"{mode} not implemented")

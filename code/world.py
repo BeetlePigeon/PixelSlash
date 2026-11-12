@@ -155,5 +155,3 @@ class World:
                     "depth_offset": - image_metadata["image"].get_height() // 2,
                     "priority": RenderPriority.FLOOR,
                 }
-
-        print(f"Set of static blockages:{self.static_occupancy}")

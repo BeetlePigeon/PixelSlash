@@ -18,14 +18,3 @@ class WalkController:
         Future implementation: alternate/secondary candidates based on waypoint.
         """
         return [waypoint]
-
-
-    def request_enable_controller(self):
-        """
-        Movement system only processes enabled motion controllers. Navigation system
-        can request enabling of controller.
-
-        Future implementation: This request can be denied by actors being in certain action states.
-        This should also migrate to being owned by action state/system when it gets implemented.
-        """
-        return True
