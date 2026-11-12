@@ -33,3 +33,7 @@ def scale_vec_to_mag(vector: Vec2i, target_mag: int) -> Vec2i:
         round(vector.x * scaling_factor),
         round(vector.y * scaling_factor),
     )
+
+
+def chebyshev_distance(vec1: Vec2i, vec2: Vec2i) -> int:
+    return max(abs(vec1.x - vec2.x), abs(vec1.y - vec2.y))

@@ -1,7 +1,7 @@
 from snapshot_system import snapshot_system
 from navigation_system import navigation_system
 from movement_system import movement_system
-from goal_system import set_goal, goal_resolution_system
+from goal_resolution_system import set_goal, goal_resolution_system
 from sprite_system import sprite_system, interpolate_cpos
 from objects import Vec2i
 from coordinates import screen_to_world

@@ -1,4 +1,8 @@
 class WalkController:
+    """"
+    WalkController generates movement candidates based on the current waypoint.
+    It has no knowledge of the actor goal or navigation.
+    """
     def __init__(self):
         self.enabled = False
         self.speed = 122    # Movement budget per tick, in world units.
@@ -6,16 +10,22 @@ class WalkController:
 
     def generate_candidates(self, pos, waypoint):
         """
-        Candidates generated are tile center coordinates. For now, the only candidate
-        generated is the very next waypoint. Later on, alternate candidates can be
-        tile centers adjacent to the actor. Responsibility for checking which candidates
-        are viable lives with the movement system."""
+        Candidates generated are tile center coordinates. The only candidate
+        generated is the waypoint.
+
+        Responsibility for checking which candidates are viable lives with the movement system.
+
+        Future implementation: alternate/secondary candidates based on waypoint.
+        """
         return [waypoint]
 
 
     def request_enable_controller(self):
-        """Movement system only processes enabled motion controllers. Navigation system
+        """
+        Movement system only processes enabled motion controllers. Navigation system
         can request enabling of controller.
 
-        Future implementation: This request can be denied by actors being in certain action states."""
+        Future implementation: This request can be denied by actors being in certain action states.
+        This should also migrate to being owned by action state/system when it gets implemented.
+        """
         return True
