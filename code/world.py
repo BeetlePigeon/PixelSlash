@@ -132,6 +132,10 @@ class World:
         return eid
 
 
+    def remove_entity(self):
+        print("Entity cleanup not implemented")
+
+
     def load_map(self):
         for y, row in enumerate(self.map):
             for x, tile_type in enumerate(row):
