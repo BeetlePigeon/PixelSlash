@@ -1,3 +1,6 @@
+from range_utils import in_range_of_goal
+
+
 def navigation_system(world):
     """Maintains waypoints for actors to pursue their goal. Waypoints
     are generated based on the actor and target positions and usage range
@@ -20,21 +23,12 @@ def navigation_system(world):
                 can_enable_walk = world.walk_controller[actor].request_enable_controller()
                 if can_enable_walk:
                     world.walk_controller[actor].enabled = True
-
-
-def in_range_of_goal(world, actor):
-    goal = world.goal[actor]
-    mode = goal["mode"]
-    target = goal["target"]
-    skill = goal["skill"]
-
-    if mode == "walk":
-        if world.transform[actor].cpos == target:
-            return True
-        else:
-            return False
+            else:
+                raise ValueError(f"{mode} not implemented")
 
 
 def generate_waypoints(world, actor, mode, target, skill):
     if mode == "walk":
         return [target]
+    else:
+        raise ValueError(f"{mode} not implemented")

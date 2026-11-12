@@ -132,7 +132,7 @@ class World:
         return eid
 
 
-    def remove_entity(self):
+    def remove_entity(self, eid):
         print("Entity cleanup not implemented")
 
 

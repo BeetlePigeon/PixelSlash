@@ -1,5 +1,5 @@
 from support import tile_center, tile_from_cpos
-from navigation_system import in_range_of_goal
+from range_utils import in_range_of_goal
 
 
 def set_goal(world, actor, target, mode, skill=None):
@@ -15,6 +15,8 @@ def set_goal(world, actor, target, mode, skill=None):
     """
     if mode == "walk":
         target = tile_center(tile_from_cpos(target))    # Clicked point on ground should target its tile center
+    else:
+        raise ValueError(f"{mode} not implemented")
 
     world.goal[actor] = {
         "mode": mode,
@@ -27,9 +29,14 @@ def set_goal(world, actor, target, mode, skill=None):
 def goal_resolution_system(world):
     """If the actor is in range of its goal: attempt to perform
     the goal action. Completed goals are discarded and navigation is cleared."""
-    for actor, goal in world.goal.items():
+    for actor, goal in list(world.goal.items()):
+        if world.navigation[actor].blocked:
+            clear_goal(world, actor)
+            continue
+
         if in_range_of_goal(world, actor):
             handle_goal(world, actor)
+            continue
 
 
 def handle_goal(world, actor):
@@ -42,8 +49,7 @@ def handle_goal(world, actor):
     target = actor_goal["target"]
 
     if mode == "walk":
-        world.navigation[actor].waypoints.clear()
-        del world.goal[actor]
+        clear_goal(world, actor)
 
     elif mode == "interact":
         print(f"Goal completion not implemented: {mode}")
@@ -51,3 +57,10 @@ def handle_goal(world, actor):
     elif mode == "use_skill":
         skill = actor_goal["skill"]
         print(f"Goal completion not implemented: {mode}")
+
+
+def clear_goal(world, actor):
+    world.navigation[actor].waypoints.clear()
+    world.navigation[actor].blocked = False
+    world.walk_controller[actor].enabled = False
+    del world.goal[actor]

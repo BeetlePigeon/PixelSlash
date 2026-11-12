@@ -31,8 +31,7 @@ def process_walk_controllers(world):
             result = get_first_legal_candidate(world, actor, budget)
 
             if result is None:
-                record_block()
-                on_block()
+                record_walk_controller_blocked(world, actor)
                 break
 
             old_pos = world.transform[actor].cpos
@@ -127,9 +126,6 @@ def legal_candidate(world, actor, end_pos):
     return True
 
 
-def record_block():
-    print("Actor was blocked - block recorded")
-
-
-def on_block():
-    print("Actor was blocked - no on block behavior")
+def record_walk_controller_blocked(world, actor):
+    nav = world.navigation[actor]
+    nav.blocked = True
