@@ -1,13 +1,26 @@
-from support import chebyshev_distance
+from support import tile_from_cpos, chebyshev_distance
 
 
-def in_range_of_goal(current_tile, target_tile, completion_range):
-    """Determines whether the actor is in range of its goal.
-    'action_range' is the tile distance from the 'current_tile' to the 'target_tile'."""
-    if chebyshev_distance(current_tile, target_tile) <= completion_range:
-        return True
+def in_range_of_goal(world, actor):
+    """
+    Determines whether the actor is in range of its goal.
+    For goal mode 'walk' this means being at the target position.
+    For other modes this means being within tile range.
+    """
+    goal = world.goal[actor]
+    mode = goal["mode"]
+    target = goal["target"]
+
+    if mode == "walk":
+        return world.transform[actor].cpos == target
     else:
-        return False
+        current_tile = tile_from_cpos(world.transform[actor].cpos)
+        target_tile = tile_from_cpos(world.transform[target].cpos)
+        completion_range = get_goal_completion_range(world, actor)
+        if chebyshev_distance(current_tile, target_tile) <= completion_range:
+            return True
+        else:
+            return False
 
 
 def clear_goal(world, actor):
@@ -19,7 +32,7 @@ def clear_goal(world, actor):
 
 def get_goal_completion_range(world, actor) -> int:
     """
-    Returns the minimum tile distance the actor must be from the target to initiate the goal action.
+    Returns the maximum tile distance the actor can be from the target to initiate the goal action.
 
     For 'walk' it's 0.
     For 'interact' it's 1.
@@ -27,7 +40,6 @@ def get_goal_completion_range(world, actor) -> int:
     """
     goal = world.goal[actor]
     mode = goal["mode"]
-    nav = world.navigation[actor]
 
     if mode == "walk":
         completion_range = 0
