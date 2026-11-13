@@ -4,11 +4,12 @@ from movement_system import movement_system
 from goal_resolution_system import set_goal, goal_resolution_system
 from sprite_system import sprite_system, interpolate_cpos
 from objects import Vec2i
-from coordinates import screen_to_world, world_to_screen
+from coordinates import screen_to_world
 from clickbox_utils import get_clickbox_rect
 import pygame
 from chat_utils import pygame_key_to_char
 from gameplaystate_ui import GameplayUI
+from debug import Debug
 
 
 class State:
@@ -38,6 +39,7 @@ class StateGameplay(State):
     def __init__(self, game):
         super().__init__(game)
         self.ui = GameplayUI(game)
+        self.debug = Debug(game)
 
 
     def build_player_intents(self, input_state):
@@ -54,7 +56,6 @@ class StateGameplay(State):
         if input_state.keys_pressed:
             for key in input_state.keys_pressed:
                 self.handle_key_press(key, input_state.mouse_pos, shift_held)
-
 
 
     def handle_left_click(self, mouse_pos, shift_held):
@@ -188,21 +189,4 @@ class StateGameplay(State):
 
         # Debug tools
         if self.game.debug_mode:
-            self.draw_debug_waypoint_tiles(self.game.world, surface)
-
-
-    def draw_debug_waypoint_tiles(self, world, surface):
-        player = self.game.world.player
-        waypoints = world.navigation[player].waypoints
-        viewport_size = Vec2i(*surface.get_size())
-        if waypoints:
-            for waypoint in waypoints:
-                screen_pos = world_to_screen(waypoint, self.game.world.world_camera.position, viewport_size)
-                sprite_data = self.game.asset_manager.image_metadata["debug_waypoint"]
-                image = sprite_data["image"]
-                sprite_offset = sprite_data["anchor"].value
-                draw_pos = (
-                    screen_pos.x + sprite_offset.x,
-                    screen_pos.y + sprite_offset.y,
-                )
-                surface.blit(image, draw_pos)
+            self.debug.draw_debug_items(self.game.world, surface)

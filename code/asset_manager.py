@@ -7,8 +7,8 @@ class AssetManager:
     def __init__(self):
         self.image_metadata = {}
 
-        base_path = Path(__file__).resolve().parent
-        self.graphics_path = base_path.parent / "sprites"
+        base_path = Path(__file__).resolve().parent.parent
+        self.graphics_path = base_path / "sprites"
 
 
     def load_image(self, *path_parts):
