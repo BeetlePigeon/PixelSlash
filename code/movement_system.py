@@ -42,6 +42,11 @@ def process_walk_controllers(world):
             candidate, displacement = result
             new_pos = old_pos + displacement
 
+            if world.game.debug_mode:
+                world.game.state.debug.walk_candidate = candidate
+            else:
+                world.game.state.debug.walk_candidate = None
+
             if tile_from_cpos(new_pos) != tile_from_cpos(old_pos):
                 remove_occupancy(world, actor, old_pos)
                 add_occupancy(world, actor, new_pos)

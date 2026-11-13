@@ -129,15 +129,12 @@ class Game:
                 self.done = True
                 break
 
-
             self.sim_accumulator += frame_dt
             if self.sim_paused:
                 self.sim_accumulator = 0.0
             ticks_to_run = 0
-
             should_advance_single_tick = self.sim_paused and self.single_tick_step_requested
             should_advance_ticks = not self.sim_paused or should_advance_single_tick
-
             if should_advance_ticks:
                 if should_advance_single_tick:
                     ticks_to_run = 1
@@ -151,8 +148,10 @@ class Game:
                     self.update_state(tick_input)
 
                 if self.sim_paused:
+                    # Draw sprites at their current position when the simulation is paused.
                     render_interpolation_factor = 1
                 else:
+                    # Interpolates sprite render positions.
                     render_interpolation_factor = self.sim_accumulator / SIM_DT
                     render_interpolation_factor = max(0.0, min(1.0, render_interpolation_factor))
 
@@ -160,8 +159,7 @@ class Game:
                 self.draw(render_interpolation_factor)
 
             else:
-                # Still draw the game if simulation is paused.
-                self.draw(1)
+                self.draw(1)    # Draw sprites at their current position when the simulation is paused.
 
 
 if __name__ == '__main__':

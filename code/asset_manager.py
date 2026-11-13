@@ -40,7 +40,19 @@ class AssetManager:
         }
 
         # Debug
-        self.image_metadata["debug_waypoint"] = {
-            "image": self.load_image("debug", "highlighted_tile.png"),
+        self.image_metadata["debug_tile"] = {
+            "image": self.load_image("debug", "tile.png"),
+            "anchor": SpriteAnchor.FLOOR_BLOCK
+        }
+        self.image_metadata["debug_candidate"] = {
+            "image": self.load_image("debug", "flag.png"),
+            "anchor": SpriteAnchor.DEBUG_FLAG
+        }
+        self.image_metadata["debug_tile_alt"] = {
+            "image": self.load_image("debug", "tile_alt.png"),
+            "anchor": SpriteAnchor.FLOOR_BLOCK
+        }
+        self.image_metadata["debug_tile_raised"] = {
+            "image": self.load_image("debug", "tile_raised.png"),
             "anchor": SpriteAnchor.FLOOR_BLOCK
         }
