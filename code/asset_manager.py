@@ -17,7 +17,7 @@ class AssetManager:
 
 
     def load(self):
-        # Player Characters
+        # Player
         self.image_metadata["player"] = {
             "image": self.load_image("characters", "player.png"),
             "anchor": SpriteAnchor.HUMAN
@@ -28,8 +28,19 @@ class AssetManager:
             "image": self.load_image("tiles", "block.png"),
             "anchor": SpriteAnchor.FLOOR_BLOCK
         }
-
         self.image_metadata["water"] = {
             "image": self.load_image("tiles", "water.png"),
+            "anchor": SpriteAnchor.FLOOR_BLOCK
+        }
+
+        # Objects
+        self.image_metadata["chest"] = {
+            "image": self.load_image("objects", "chest.png"),
+            "anchor": SpriteAnchor.CHEST
+        }
+
+        # Debug
+        self.image_metadata["debug_waypoint"] = {
+            "image": self.load_image("debug", "highlighted_tile.png"),
             "anchor": SpriteAnchor.FLOOR_BLOCK
         }

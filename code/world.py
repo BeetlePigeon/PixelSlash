@@ -36,7 +36,7 @@ class World:
         # Tag components
         self.tile = set()       # Entities representing map tiles.
         self.actor = set()      # Entities capable of acting/moving.
-        self.object = set()     # World objects, distinct from actors/tiles.
+        self.object = set()     # World objects that can be interacted with, distinct from actors/tiles.
 
         self.center_occupancy = {}
         # center_occupancy[Vec2i(9, 2)] -> {1}           # Actors 1 has their center tile at tile (9, 2).
@@ -64,7 +64,7 @@ class World:
         self.walk_controller = {}   # What actors use to navigate to goal targets.
         # walk_controller[eid] = WalkController()
         #
-        # Contains lots of cool shit.
+        # Handles local steering towards current navigation waypoint.
         self.skills = {}            # Skill slot bindings.
         # skills[eid] -> {
         #   0: "attack",    # Skill equipped to slot 1 (LMB for player)
@@ -74,15 +74,19 @@ class World:
         # }
 
         # Presentation and interaction components
+        self.clickbox = {}                 # Rectangles used for detecting mouse cursor overlap.
+        # clickbox[eid] -> {
+        #   "size": Vec2i(50, 50), # Clickbox (width, height) in pixels.
+        #   "offset": Vec2i(0, 10), # Offsets the clickbox center from the entity.
+        self.object_interact_range = {}     # Used for objects: specifies maximum tile distance away to interact with.
         self.sprite = {}        # Sprite asset and rendering properties.
         # sprite[eid] -> {
         #   "image_metadata": ...,  # Shared asset data: image + anchor.
         #   "depth_offset": ...,    # Screen-pixel adjustment to sorting Y.
         #   "priority": ...,        # RenderPriority; breaks depth ties.
         # }
-        self.click_box = {}     # Rectangles used for detecting mouse cursor overlap.
 
-        # Map Setup: 0=blocked, 1=free
+        # Map Setup
         self.map = test_map
         self.load_map()
 
@@ -94,7 +98,11 @@ class World:
         self.world_camera.center_on(self.transform[self.player].cpos)
 
         # Debug
-        self.spawn_player(spawn_tile=Vec2i(0, 0))
+        self.debug_setup()
+
+
+    def remove_entity(self, eid):
+        print("Entity cleanup not implemented")
 
 
     def spawn_player(self, spawn_tile=None):
@@ -121,10 +129,6 @@ class World:
         return eid
 
 
-    def remove_entity(self, eid):
-        print("Entity cleanup not implemented")
-
-
     def load_map(self):
         for y, row in enumerate(self.map):
             for x, tile_type in enumerate(row):
@@ -141,6 +145,25 @@ class World:
                 self.transform[eid] = Transform(cpos=tile_center(tile_location), prev_cpos=tile_center(tile_location), elevation=0)
                 self.sprite[eid] = {
                     "image_metadata": image_metadata,
-                    "depth_offset": - image_metadata["image"].get_height() // 2,
+                    "depth_offset": - image_metadata["image"].get_height() // 2, # Use the very top of the tile for depth sort.
                     "priority": RenderPriority.FLOOR,
                 }
+
+
+    def debug_setup(self):
+        eid = self.entity_manager.create()
+        tile = Vec2i(28, 18)
+        self.object.add(eid)
+        self.static_occupancy.add(tile)
+        self.transform[eid] = Transform(cpos=tile_center(tile), prev_cpos=tile_center(tile), elevation=0)
+        image_metadata = self.game.asset_manager.image_metadata["chest"]
+        self.clickbox[eid] = {
+            "size": Vec2i(50, 50),
+            "offset": Vec2i(0, 0),
+        }
+        self.object_interact_range[eid] = 2
+        self.sprite[eid] = {
+            "image_metadata": image_metadata,
+            "depth_offset": 0,
+            "priority": RenderPriority.CHEST,
+        }

@@ -35,16 +35,17 @@ def get_goal_completion_range(world, actor) -> int:
     Returns the maximum tile distance the actor can be from the target to initiate the goal action.
 
     For 'walk' it's 0.
-    For 'interact' it's 1.
+    For 'interact' it's determined by the interactable object.
     For 'use_skill' it's determined by the skill.
     """
     goal = world.goal[actor]
     mode = goal["mode"]
+    target = goal["target"]
 
     if mode == "walk":
         completion_range = 0
     if mode == "interact":
-        completion_range = 1
+        completion_range = world.object_interact_range[target]
     if mode == "use_skill":
         raise ValueError(f"{mode} not implemented")
 

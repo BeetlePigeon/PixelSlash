@@ -76,8 +76,7 @@ def sprite_system(world, surface, render_alpha):
             viewport_size
         )
 
-        # Shared asset metadata provides the image surf and its pixel offset.
-        # SpriteAnchor is an Enum containing a Vec2i, hence .value.
+        # Asset metadata provides the image surf and its pixel offset.
         sprite_data = sprite["image_metadata"]
         image = sprite_data["image"]
         sprite_offset = sprite_data["anchor"].value

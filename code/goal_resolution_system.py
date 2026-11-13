@@ -17,6 +17,8 @@ def set_goal(world, actor, target, mode, skill=None):
     """
     if mode == "walk":
         target = tile_center(tile_from_cpos(target))    # Clicked point on ground should target its tile center
+    elif mode == "interact":
+        pass
     else:
         raise ValueError(f"{mode} not implemented")
 
@@ -62,7 +64,8 @@ def attempt_goal(world, actor):
         clear_goal(world, actor)
 
     elif mode == "interact":
-        print(f"Goal completion not implemented: {mode}")
+        print(f"Chest opened! {world.tick}")
+        clear_goal(world, actor)
 
     elif mode == "use_skill":
         print(f"Goal completion not implemented: {mode}")

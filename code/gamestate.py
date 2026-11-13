@@ -4,7 +4,8 @@ from movement_system import movement_system
 from goal_resolution_system import set_goal, goal_resolution_system
 from sprite_system import sprite_system, interpolate_cpos
 from objects import Vec2i
-from coordinates import screen_to_world
+from coordinates import screen_to_world, world_to_screen
+from clickbox_utils import get_clickbox_rect
 
 
 class State:
@@ -66,24 +67,29 @@ class StateGameplay(State):
 
         else:
             world_pos = screen_to_world(Vec2i(mouse_pos[0], mouse_pos[1]), world.world_camera.position, self.game.display.internal_size)
-            target = self.get_hovered_target(world_pos)
+            target = self.get_hovered_target(mouse_pos)
 
             if not target:
                 set_goal(world, actor=player, target=world_pos, mode="walk")
 
-            if target in world.actor:
-                set_goal(world, actor=player, target=target, mode="use_skill", skill=skill)
-
-            elif target in world.object:
+            if target in world.object:
                 set_goal(world, actor=player, target=target, mode="interact")
 
+            elif target in world.actor:
+                set_goal(world, actor=player, target=target, mode="use_skill", skill=skill)
 
-    def get_hovered_target(self, pos):
+
+    def get_hovered_target(self, mouse_pos):
+        """
+        Returns the first entity who has a clickbox under the mouse cursor or None if there aren't any.
+
+        Future: correct clickbox priority (e.g. by depth, then enemy > object > item instead of first eid found.)
+        """
         world = self.game.world
-
-        for entity, rect in sorted(world.click_box.items()):
-            if rect.collidepoint(pos):
-                return entity
+        for eid, clickbox_dict in sorted(world.clickbox.items()):
+            clickbox_rect = get_clickbox_rect(world, eid, clickbox_dict)
+            if clickbox_rect.collidepoint(mouse_pos):
+                return eid
 
         return None
 
@@ -121,5 +127,22 @@ class StateGameplay(State):
         world.world_camera.center_on(player_render_pos)
 
         # Draw the world layer by layer using the updated camera position.
-        renderables = world.sprite.items()
         sprite_system(self.game.world, surface, render_alpha)
+        self.draw_debug_waypoint_tiles(self.game.world, surface)
+
+
+    def draw_debug_waypoint_tiles(self, world, surface):
+        player = self.game.world.player
+        waypoints = world.navigation[player].waypoints
+        viewport_size = Vec2i(*surface.get_size())
+        if waypoints:
+            for waypoint in waypoints:
+                screen_pos = world_to_screen(waypoint, self.game.world.world_camera.position, viewport_size)
+                sprite_data = self.game.asset_manager.image_metadata["debug_waypoint"]
+                image = sprite_data["image"]
+                sprite_offset = sprite_data["anchor"].value
+                draw_pos = (
+                    screen_pos.x + sprite_offset.x,
+                    screen_pos.y + sprite_offset.y,
+                )
+                surface.blit(image, draw_pos)

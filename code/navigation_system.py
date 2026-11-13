@@ -1,5 +1,5 @@
 from objects import Vec2i
-from support import tile_from_cpos, tile_center, chebyshev_distance
+from support import norm, tile_from_cpos, tile_center, chebyshev_distance
 from goal_utils import in_range_of_goal, get_goal_completion_range
 import math
 
@@ -33,6 +33,7 @@ def navigation_system(world):
                         world.walk_controller[actor].enabled = True
                     elif result == "reroute_failure":
                         nav.failed = True
+                        print(f"Navigation failure recorded for {world.goal[actor]["mode"]}")
 
                 elif route_is_stale(world, actor):
                     nav.waypoints = generate_waypoints(world, actor)
@@ -62,20 +63,29 @@ def get_closest_in_range_tile(world, actor, target, tile_range) -> Vec2i:
     target_tile = tile_from_cpos(world.transform[target].cpos)
 
     closest = None
-    best_delta = math.inf
+    best_tile_dist = math.inf
+    best_world_dist = math.inf
     for y in range(-tile_range, tile_range + 1):
         for x in range(-tile_range, tile_range + 1):
             tile = Vec2i(target_tile.x + x, target_tile.y + y)
             if tile.x < 0 or tile.y < 0:
                 continue    # Don't need to check out of bound tiles.
             diff = abs(tile - actor_tile)
-            delta = max(diff.x, diff.y)
+            tile_dist = max(diff.x, diff.y)
+            world_dist = norm(tile_center(tile) - world.transform[actor].cpos)
             if not closest:
                 closest = tile
-                best_delta = delta
-            if delta < best_delta:
+                best_tile_dist = tile_dist
+                best_world_dist = world_dist
+            if tile_dist < best_tile_dist:
                 closest = tile
-                best_delta = delta
+                best_tile_dist = tile_dist
+                best_world_dist = world_dist
+            elif tile_dist == best_tile_dist and world_dist < best_world_dist:
+                # If two tiles are equal tile distance pick the one with the closer center.
+                closest = tile
+                best_tile_dist = tile_dist
+                best_world_dist = world_dist
 
     return closest
 
