@@ -1,11 +1,13 @@
-from support import tile_from_cpos, tile_center
+from objects import Vec2i
+from support import tile_from_cpos, tile_center, chebyshev_distance
 from goal_utils import in_range_of_goal, get_goal_completion_range
+import math
 
 
 def navigation_system(world):
     """
-    'navigation_system' does nothing for goals that are in range, otherwise creates waypoints for new goals
-    and either regenerates waypoints or discards goals in the case of a stale target or blocked navigation.
+    'navigation_system' creates waypoints for new goals and either regenerates waypoints or records Navigator failure
+    in the case of a stale target or blocked navigation.
 
     Waypoints generated are based on the actor, target's current position, and completion range of the goal action.
 
@@ -42,15 +44,40 @@ def generate_waypoints(world, actor):
     goal = world.goal[actor]
     mode = goal["mode"]
     target = goal["target"]
+    completion_range = get_goal_completion_range(world, actor)
 
     waypoints = []
+
     if mode == "walk":
         final_waypoint = target
     else:
-        raise ValueError(f"{mode} not implemented")
+        final_waypoint = tile_center(get_closest_in_range_tile(world, actor, target, completion_range))
 
     waypoints.append(final_waypoint)
     return waypoints
+
+
+def get_closest_in_range_tile(world, actor, target, tile_range) -> Vec2i:
+    actor_tile = tile_from_cpos(world.transform[actor].cpos)
+    target_tile = tile_from_cpos(world.transform[target].cpos)
+
+    closest = None
+    best_delta = math.inf
+    for y in range(-tile_range, tile_range + 1):
+        for x in range(-tile_range, tile_range + 1):
+            tile = Vec2i(target_tile.x + x, target_tile.y + y)
+            if tile.x < 0 or tile.y < 0:
+                continue    # Don't need to check out of bound tiles.
+            diff = abs(tile - actor_tile)
+            delta = max(diff.x, diff.y)
+            if not closest:
+                closest = tile
+                best_delta = delta
+            if delta < best_delta:
+                closest = tile
+                best_delta = delta
+
+    return closest
 
 
 def generate_block_reroute_waypoints(world, actor):
@@ -74,17 +101,21 @@ def route_is_stale(world, actor) -> bool:
     If no waypoints, the route is stale since the actor still isn't in range.
     Otherwise, compares the final waypoint to the target's current position.
     """
-    nav = world.navigation[actor]
-    waypoints = nav.waypoints
-    mode = world.goal[actor]["mode"]
-    target = world.goal[actor]["target"]
+    waypoints = world.navigation[actor].waypoints
+    goal = world.goal[actor]
+    mode = goal["mode"]
+    target = goal["target"]
 
     if not waypoints:
         return True
-    else:
-        final_pos = waypoints[-1]
-        target_pos = target if mode == "walk" else tile_center(tile_from_cpos(world.transform[target].cpos))
-        if final_pos != target_pos:
-            return True
 
-    return False
+    final_waypoint = waypoints[-1]
+
+    if mode == "walk":
+        return final_waypoint != target
+
+    final_tile = tile_from_cpos(final_waypoint)
+    target_tile = tile_from_cpos(world.transform[target].cpos)
+    completion_range = get_goal_completion_range(world, actor)
+
+    return chebyshev_distance(final_tile, target_tile) > completion_range

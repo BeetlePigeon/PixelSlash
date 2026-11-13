@@ -5,6 +5,7 @@ from render_priority import RenderPriority
 from navigation import Navigator
 from controllers import WalkController
 from occupancy_utils import add_occupancy
+from map import test_map
 
 
 class World:
@@ -82,19 +83,7 @@ class World:
         self.click_box = {}     # Rectangles used for detecting mouse cursor overlap.
 
         # Map Setup: 0=blocked, 1=free
-        self.map = [
-            [0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0],
-            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-        ]
+        self.map = test_map
         self.load_map()
 
         # Actor Setup
