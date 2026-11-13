@@ -33,7 +33,6 @@ def navigation_system(world):
                         world.walk_controller[actor].enabled = True
                     elif result == "reroute_failure":
                         nav.failed = True
-                        print(f"Navigation failure recorded for {world.goal[actor]["mode"]}")
 
                 elif route_is_stale(world, actor):
                     nav.waypoints = generate_waypoints(world, actor)

@@ -27,6 +27,11 @@ def set_goal(world, actor, target, mode, skill=None):
         "target": target,
         "skill": skill
     }
+
+    curr_goal = world.goal.get(actor, None)
+    if curr_goal and goal == curr_goal:
+        return
+
     world.goal[actor] = goal
     world.navigation[actor].reset()
 

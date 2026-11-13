@@ -158,7 +158,7 @@ class World:
         self.transform[eid] = Transform(cpos=tile_center(tile), prev_cpos=tile_center(tile), elevation=0)
         image_metadata = self.game.asset_manager.image_metadata["chest"]
         self.clickbox[eid] = {
-            "size": Vec2i(50, 50),
+            "size": Vec2i(56, 80),
             "offset": Vec2i(0, 0),
         }
         self.object_interact_range[eid] = 2

@@ -49,6 +49,10 @@ class Game:
         self.state = self.states[self.state_name]
         self.state.startup({})
 
+        # Developer mode
+        self.developer_mode = True
+        self.debug_mode = False
+
 
     def flip_state(self):
         next_state = self.state.next_state

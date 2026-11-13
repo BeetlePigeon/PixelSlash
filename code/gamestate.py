@@ -6,6 +6,9 @@ from sprite_system import sprite_system, interpolate_cpos
 from objects import Vec2i
 from coordinates import screen_to_world, world_to_screen
 from clickbox_utils import get_clickbox_rect
+import pygame
+from chat_utils import pygame_key_to_char
+from gameplaystate_ui import GameplayUI
 
 
 class State:
@@ -34,56 +37,107 @@ class State:
 class StateGameplay(State):
     def __init__(self, game):
         super().__init__(game)
-        self.ui_widgets = []
-
-
-    def mouse_over_ui(self, screen_pos):
-        for widget in self.ui_widgets:
-            if widget.collidepoint(screen_pos):
-                self.handle_ui_interaction(widget)
-                return True
-
-        return False
-
-
-    def handle_ui_interaction(self, widget):
-        return
+        self.ui = GameplayUI(game)
 
 
     def build_player_intents(self, input_state):
+        shift_held = False
+        keys_held = input_state.keys
+        if keys_held[pygame.K_LSHIFT] or keys_held[pygame.K_RSHIFT]:
+            shift_held = True
+
         lmb = 1 in input_state.mouse_pressed
 
         if lmb:
-            self.handle_left_click(input_state.mouse_pos)
+            self.handle_left_click(input_state.mouse_pos, shift_held)
+
+        if input_state.keys_pressed:
+            for key in input_state.keys_pressed:
+                self.handle_key_press(key, input_state.mouse_pos, shift_held)
 
 
-    def handle_left_click(self, mouse_pos):
+
+    def handle_left_click(self, mouse_pos, shift_held):
         world = self.game.world
         player = world.player
         skill = world.skills[player][0]
 
-        if self.mouse_over_ui(mouse_pos):
+        if self.mouse_over_ui(mouse_pos, "LMB"):
             return
 
+        world_pos = screen_to_world(Vec2i(mouse_pos[0], mouse_pos[1]), world.world_camera.position, self.game.display.internal_size)
+        target = self.get_hovered_target(mouse_pos)
+
+        if not target:
+            set_goal(world, actor=player, target=world_pos, mode="walk")
+
+        if target in world.object:
+            set_goal(world, actor=player, target=target, mode="interact")
+
+        elif target in world.actor:
+            set_goal(world, actor=player, target=target, mode="use_skill", skill=skill)
+
+
+    def handle_key_press(self, key, mouse_pos, shift_held):
+        """
+        For now, key presses are only used for typing in the debug console.
+
+        Later, they may be used for additional skill bindings.
+        """
+        if self.mouse_over_ui(mouse_pos, key):
+            return
+
+        if self.ui.player_text_panel_open:
+            if key == pygame.K_RETURN:
+                self.enter_message()
+            elif key == pygame.K_ESCAPE:
+                self.cancel_message()
+            elif key == pygame.K_BACKSPACE:
+                if self.ui.player_message:
+                    self.ui.player_message.pop()
+            else:
+                char = pygame_key_to_char(key, shift_held)
+                if char:
+                    self.ui.player_message.append(char)
         else:
-            world_pos = screen_to_world(Vec2i(mouse_pos[0], mouse_pos[1]), world.world_camera.position, self.game.display.internal_size)
-            target = self.get_hovered_target(mouse_pos)
+            if key == pygame.K_RETURN:
+                self.ui.player_text_panel_open = True
 
-            if not target:
-                set_goal(world, actor=player, target=world_pos, mode="walk")
 
-            if target in world.object:
-                set_goal(world, actor=player, target=target, mode="interact")
+    def mouse_over_ui(self, screen_pos, button):
+        """Filters inputs if mouse is over a UI element that consumes it."""
+        consumed = False
+        for widget in self.ui.widgets:
+            if widget.collidepoint(screen_pos):
+                consumed = self.handle_ui_interaction(widget, button)
+                if consumed:
+                    break
+        return consumed
 
-            elif target in world.actor:
-                set_goal(world, actor=player, target=target, mode="use_skill", skill=skill)
+
+    def handle_ui_interaction(self, widget, button):
+        return False
+
+
+    def enter_message(self):
+        command = "".join(self.ui.player_message)
+        if command == "~" and self.game.developer_mode:
+            self.game.debug_mode = not self.game.debug_mode
+
+        self.ui.player_message = []
+        self.ui.player_text_panel_open = False
+
+
+    def cancel_message(self):
+        self.ui.player_message = []
+        self.ui.player_text_panel_open = False
 
 
     def get_hovered_target(self, mouse_pos):
         """
         Returns the first entity who has a clickbox under the mouse cursor or None if there aren't any.
 
-        Future: correct clickbox priority (e.g. by depth, then enemy > object > item instead of first eid found.)
+        Future: fix clickbox priority (e.g. by depth, then enemy > object > item instead of first eid found.)
         """
         world = self.game.world
         for eid, clickbox_dict in sorted(world.clickbox.items()):
@@ -128,7 +182,13 @@ class StateGameplay(State):
 
         # Draw the world layer by layer using the updated camera position.
         sprite_system(self.game.world, surface, render_alpha)
-        self.draw_debug_waypoint_tiles(self.game.world, surface)
+
+        # Draw the UI
+        self.ui.draw_player_text_panel()
+
+        # Debug tools
+        if self.game.debug_mode:
+            self.draw_debug_waypoint_tiles(self.game.world, surface)
 
 
     def draw_debug_waypoint_tiles(self, world, surface):
