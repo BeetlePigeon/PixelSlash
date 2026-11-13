@@ -12,11 +12,14 @@ class Debug:
 
 
     def process_debug_inputs(self, input_state):
+        if self.game.state.ui.player_text_panel_open:
+            return
+
         if input_state.keys_pressed:
             for key in input_state.keys_pressed:
                 if key == pygame.K_p:
                     self.game.sim_paused = not self.game.sim_paused
-                if key == pygame.K_PERIOD:
+                if key == pygame.K_PERIOD and self.game.sim_paused:
                     self.game.single_tick_step_requested = True
 
 
@@ -34,12 +37,12 @@ class Debug:
 
 
     def draw_waypoint_tiles(self, world, surface):
-        player = self.game.world.player
+        player = world.player
         waypoints = world.navigation[player].waypoints
         viewport_size = Vec2i(*surface.get_size())
         if waypoints:
             for waypoint in waypoints:
-                screen_pos = world_to_screen(waypoint, self.game.world.world_camera.position, viewport_size)
+                screen_pos = world_to_screen(waypoint, world.world_camera.position, viewport_size)
                 sprite_data = self.game.asset_manager.image_metadata["debug_waypoint"]
                 image = sprite_data["image"]
                 sprite_offset = sprite_data["anchor"].value

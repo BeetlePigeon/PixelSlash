@@ -118,6 +118,9 @@ class Game:
 
             key_and_mouse_buttons = self.input_handler.collect()
             input_state = self.add_mouse_pos(key_and_mouse_buttons)
+            if self.debug_mode:
+                self.state.debug.process_debug_inputs(input_state)
+
             if not self.sim_paused or self.single_tick_step_requested:
                 # Only buffer inputs if the game is either not paused, or paused and manually advancing ticks.
                 self.input_buffer.add_frame_input(input_state)
@@ -126,8 +129,6 @@ class Game:
                 self.done = True
                 break
 
-            if self.debug_mode:
-                self.state.debug.process_debug_inputs(input_state)
 
             self.sim_accumulator += frame_dt
             if self.sim_paused:
@@ -149,16 +150,18 @@ class Game:
                     tick_input = self.input_buffer.consume(input_state)
                     self.update_state(tick_input)
 
-                render_interpolation_factor = self.sim_accumulator / SIM_DT
-                render_interpolation_factor = max(0.0, min(1.0, render_interpolation_factor))
+                if self.sim_paused:
+                    render_interpolation_factor = 1
+                else:
+                    render_interpolation_factor = self.sim_accumulator / SIM_DT
+                    render_interpolation_factor = max(0.0, min(1.0, render_interpolation_factor))
 
                 self.single_tick_step_requested = False
-
                 self.draw(render_interpolation_factor)
 
             else:
                 # Still draw the game if simulation is paused.
-                self.draw(0.5)
+                self.draw(1)
 
 
 if __name__ == '__main__':
