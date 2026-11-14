@@ -6,6 +6,15 @@ class Vec2i:
     x: int
     y: int
 
+
+    def rotate_90_cw(self):
+        return Vec2i(self.y, -self.x)
+
+
+    def rotate_90_ccw(self):
+        return Vec2i(-self.y, self.x)
+
+
     def __add__(self, other):
         return Vec2i(self.x + other.x, self.y + other.y)
 

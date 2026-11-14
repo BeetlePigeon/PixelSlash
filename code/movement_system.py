@@ -77,6 +77,9 @@ def get_first_legal_candidate(world, actor, budget):
             displacement = scale_vec_to_mag(direction, budget)
 
         end_pos = pos + displacement
+        if tile_from_cpos(end_pos) == tile_from_cpos(pos):
+            return candidate, displacement  # Moving within same tile is always legal
+
         if legal_candidate(world, actor, end_pos):
             return candidate, displacement
 
