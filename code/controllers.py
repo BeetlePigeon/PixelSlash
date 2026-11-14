@@ -29,18 +29,27 @@ class WalkController:
         """
         candidates = []
         direct_to_waypoint = waypoint
-        candidates.append(direct_to_waypoint)
+#        candidates.append(direct_to_waypoint)
 
         tiles_crossed = tiles_traversed(pos, waypoint)
         if tiles_crossed:
             first_crossing_tile = tiles_crossed[0]
             first_crossing_center = tile_center(first_crossing_tile)
             first_crossing_direction = first_crossing_tile - tile_from_cpos(pos)
-            left_of_first_crossing = first_crossing_direction.rotate_90_ccw()
-            right_of_first_crossing = first_crossing_direction.rotate_90_cw()
 
-            candidates.append(first_crossing_center)
-            candidates.append(tile_center(first_crossing_tile + left_of_first_crossing))
-            candidates.append(tile_center(first_crossing_tile + right_of_first_crossing))
+            left_of_first_crossing = first_crossing_direction.rotate_90_ccw()
+            left_tile = first_crossing_tile + left_of_first_crossing
+            left_tile_center = tile_center(left_tile)
+
+            right_of_first_crossing = first_crossing_direction.rotate_90_cw()
+            right_tile = first_crossing_tile + right_of_first_crossing
+            right_tile_center = tile_center(right_tile)
+
+            if first_crossing_tile not in candidates:
+                candidates.append(first_crossing_center)
+            if left_tile not in candidates:
+                candidates.append(left_tile_center)
+            if right_tile not in candidates:
+                candidates.append(right_tile_center)
 
         return candidates

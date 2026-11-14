@@ -18,7 +18,13 @@ footprints = {
     }
 }
 
-def get_footprint_tiles(pos, footprint):
+def get_footprint_tiles(pos: Vec2i, footprint: str) -> tuple[Vec2i, list[Vec2i]]:
+    """
+    Returns the center tile and list of wing tiles of the actor's footprint at position 'pos'.
+
+    'pos': Actor's world position.
+    'footprint': Actor's occupancy footprint. Is either 'single' or 'plus'.
+    """
     center = tile_from_cpos(pos)
     tiles = footprints[footprint]
 
@@ -30,22 +36,25 @@ def get_footprint_tiles(pos, footprint):
     return center, wings
 
 
-def remove_occupancy(world, actor, pos):
-    center, wings = get_footprint_tiles(pos, world.footprint[actor])
+def remove_occupancy(world, tile: Vec2i, footprint: str) -> None:
+    """
+    Updates the dynamic occupancy map based on the given footprint being placed at 'tile'.
+    The occupancy count for any tile cannot be less than 0.
 
-    world.center_occupancy[center].remove(actor)
-    if not world.center_occupancy[center]:  # Don't leave behind empty sets.
-        del world.center_occupancy[center]
+    There is no need to check for negative count since that could only occur from incorrect bookkeeping (which should
+    be fixed elsewhere.)
+    """
+    wing_offsets = footprints[footprint]["wings"]
+    world.single_dynamic_blockers[tile] -= 1
+    world.plus_dynamic_blockers[tile] -= 1
+    for offset in wing_offsets:
+        world.plus_dynamic_blockers[tile + offset] += 1
 
-    for wing in wings:
-        world.wing_occupancy[wing].remove(actor)
-        if not world.wing_occupancy[wing]:  # Don't leave behind empty sets.
-            del world.wing_occupancy[wing]
 
-
-def add_occupancy(world, actor, pos):
-    center, wings = get_footprint_tiles(pos, world.footprint[actor])
-
-    world.center_occupancy.setdefault(center, set()).add(actor)
-    for wing in wings:
-        world.wing_occupancy.setdefault(wing, set()).add(actor)
+def add_occupancy(world, tile: Vec2i, footprint: str) -> None:
+    """Updates the dynamic occupancy map based on the given footprint being placed at 'tile'."""
+    wing_offsets = footprints[footprint]["wings"]
+    world.single_dynamic_blockers[tile] += 1
+    world.plus_dynamic_blockers[tile] += 1
+    for offset in wing_offsets:
+        world.plus_dynamic_blockers[tile + offset] += 1

@@ -24,6 +24,7 @@ def process_walk_controllers(world):
         budget = controller.speed
         nav = world.navigation[actor]
         waypoints = nav.waypoints
+        footprint = world.footprint[actor]
 
         while budget > 0 and waypoints:
             current_waypoint = waypoints[0]
@@ -48,8 +49,8 @@ def process_walk_controllers(world):
                 world.game.state.debug.walk_candidate = None
 
             if tile_from_cpos(new_pos) != tile_from_cpos(old_pos):
-                remove_occupancy(world, actor, old_pos)
-                add_occupancy(world, actor, new_pos)
+                remove_occupancy(world, tile_from_cpos(old_pos), footprint)
+                add_occupancy(world, tile_from_cpos(new_pos), footprint)
 
             world.transform[actor].cpos = new_pos
             budget -= norm(displacement)
@@ -77,10 +78,8 @@ def get_first_legal_candidate(world, actor, budget):
             displacement = scale_vec_to_mag(direction, budget)
 
         end_pos = pos + displacement
-        if tile_from_cpos(end_pos) == tile_from_cpos(pos):
-            return candidate, displacement  # Moving within same tile is always legal
 
-        if legal_candidate(world, actor, end_pos):
+        if legal_candidate(world, actor, end_pos) and legal_candidate(world, actor, candidate):
             return candidate, displacement
 
     return None
@@ -88,14 +87,7 @@ def get_first_legal_candidate(world, actor, budget):
 
 def legal_candidate(world, actor, end_pos):
     """
-    Determines whether the actor's footprint can legally occupy end_pos.
-
-    Current algorithm (uses endpoint-only collision validation):
-     1) Return False if center tile overlaps with another actor center.
-     2) Return False if center tile overlaps with another actor wing.
-     3) Return False if any wing overlaps with another actor center.
-     4) Return False if any footprint tile overlaps with a static obstruction.
-     5) Otherwise return True.
+    Determines whether the actor can legally occupy 'end_pos'.
 
     A possible future implementation using DDA Grid Traversal (checks intermediate
         footprint positions along the movement trajectory.):
@@ -107,31 +99,20 @@ def legal_candidate(world, actor, end_pos):
      Optional improvement: evaluate placement validity sequentially as each new tile is crossed and early
         return False if invalid placement found, instead of finding all tiles crossed and then checking.
     """
+    tile = tile_from_cpos(end_pos)
+    if tile == tile_from_cpos(world.transform[actor].cpos):
+        return True
 
     footprint = world.footprint[actor]
-    center, wings = get_footprint_tiles(end_pos, footprint)
-
-    center_center_blockers = world.center_occupancy.get(center, ())
-    for eid in center_center_blockers:
-        if eid != actor:
-            return False
-
-    center_wing_blockers = world.wing_occupancy.get(center, ())
-    for eid in center_wing_blockers:
-        if eid != actor:
-            return False
-
-    for wing in wings:
-        wing_center_blockers = world.center_occupancy.get(wing, ())
-        for eid in wing_center_blockers:
-            if eid != actor:
-                return False
-
-    for footprint_tile in [center, *wings]:
-        if footprint_tile in world.static_occupancy:
-            return False
-
-    return True
+    if footprint == "single":
+        result = tile not in world.single_static_blockers and world.single_dynamic_blockers[tile] == 0
+        return result
+    if footprint == "plus":
+        static_block = tile in world.plus_static_blockers
+        dynamic_block = world.plus_dynamic_blockers[tile] > 0
+        result = not static_block and not dynamic_block
+        print(f"static block: {static_block}, dynamic block: {dynamic_block}. Legal: {result}")
+        return result
 
 
 def mark_walk_controller_blocked(world, actor):

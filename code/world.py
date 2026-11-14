@@ -4,7 +4,7 @@ from camera import Camera
 from render_priority import RenderPriority
 from navigation import Navigator
 from controllers import WalkController
-from occupancy_utils import add_occupancy
+from occupancy_utils import add_occupancy, footprints
 from map import test_map
 
 
@@ -38,14 +38,18 @@ class World:
         self.actor = set()      # Entities capable of acting/moving.
         self.object = set()     # World objects that can be interacted with, distinct from actors/tiles.
 
-        self.center_occupancy = {}
-        # center_occupancy[Vec2i(9, 2)] -> {1}           # Actors 1 has their center tile at tile (9, 2).
-        self.wing_occupancy = {}
-        # wing_occupancy[Vec2i(3, 4)] -> {1, 50, 201}       # Actors 1, 50, and 201 have a wing tile at tile (3, 4).
-        self.static_occupancy = set()
-        # static_occupancy = {Vec2i(1, 1), Vec2i(2, 2)}     # Tiles (1, 1) and (2, 2) are statically obstructed.
+        self.single_dynamic_blockers = {}
+        # single_dynamic_blockers[Vec2i(9, 2)] -> 3 # Tile (9, 2) is blocked for actors with 'single' footprint since
+        # there are three actors dynamically blocking it.
+        self.plus_dynamic_blockers = {}
+        # plus_dynamic_blockers[Vec2i(9, 2)] -> 3 # Tile (9, 2) is blocked for actors with 'plus' footprint since
+        # there are three actors dynamically blocking it.
+        self.single_static_blockers = set()
+        # single_static_blockers = {Vec2i(1, 1)} # Actors with 'single' footprint cannot stand at tile (1, 1).
+        self.plus_static_blockers = set()
+        # plus_static_blockers = {Vec2i(1, 1)} # Actors with 'plus' footprint cannot stand at tile (1, 1).
         #
-        # All occupancy structures are sparse.
+        # Dynamic blocker maps are dense. Static blocker maps are sparse.
 
         # Gameplay components
         self.goal = {}                  # Current actor objective.
@@ -78,6 +82,7 @@ class World:
         # clickbox[eid] -> {
         #   "size": Vec2i(50, 50), # Clickbox (width, height) in pixels.
         #   "offset": Vec2i(0, 10), # Offsets the clickbox center from the entity.
+        # }
         self.object_interact_range = {}     # Used for objects: specifies maximum tile distance away to interact with.
         self.sprite = {}        # Sprite asset and rendering properties.
         # sprite[eid] -> {
@@ -114,7 +119,7 @@ class World:
         self.actor.add(eid)
         self.transform[eid] = Transform(cpos=tile_center(spawn_tile), prev_cpos=tile_center(spawn_tile), elevation=0)
         self.footprint[eid] = "plus"
-        add_occupancy(self, eid, tile_center(spawn_tile))
+        add_occupancy(self, spawn_tile, self.footprint[eid])
         self.navigation[eid] = Navigator([])
         self.walk_controller[eid] = WalkController()
         self.skills[eid] = {
@@ -132,17 +137,17 @@ class World:
     def load_map(self):
         for y, row in enumerate(self.map):
             for x, tile_type in enumerate(row):
-                tile_location = Vec2i(x, y)
+                tile = Vec2i(x, y)
+                eid = self.entity_manager.create()
+                self.tile.add(eid)
                 if tile_type == 0:
                     image_metadata = self.game.asset_manager.image_metadata["block"]
-                    self.static_occupancy.add(tile_location)
+                    self.add_static_blockage_tiles(tile)
                 elif tile_type == 1:
                     image_metadata = self.game.asset_manager.image_metadata["water"]
-
-                eid = self.entity_manager.create()
-
-                self.tile.add(eid)
-                self.transform[eid] = Transform(cpos=tile_center(tile_location), prev_cpos=tile_center(tile_location), elevation=0)
+                self.single_dynamic_blockers[tile] = 0
+                self.plus_dynamic_blockers[tile] = 0
+                self.transform[eid] = Transform(cpos=tile_center(tile), prev_cpos=tile_center(tile), elevation=0)
                 self.sprite[eid] = {
                     "image_metadata": image_metadata,
                     "depth_offset": - image_metadata["image"].get_height() // 2, # Use the very top of the tile for depth sort.
@@ -154,7 +159,7 @@ class World:
         eid = self.entity_manager.create()
         tile = Vec2i(28, 18)
         self.object.add(eid)
-        self.static_occupancy.add(tile)
+        self.add_static_blockage_tiles(tile)
         self.transform[eid] = Transform(cpos=tile_center(tile), prev_cpos=tile_center(tile), elevation=0)
         image_metadata = self.game.asset_manager.image_metadata["chest"]
         self.clickbox[eid] = {
@@ -167,3 +172,9 @@ class World:
             "depth_offset": 0,
             "priority": RenderPriority.CHEST,
         }
+
+
+    def add_static_blockage_tiles(self, tile):
+        self.single_static_blockers.add(tile + footprints["single"]["center"])
+        self.plus_static_blockers.add(tile + footprints["plus"]["center"])
+        self.plus_static_blockers.update(tile + wing for wing in footprints["plus"]["wings"])
