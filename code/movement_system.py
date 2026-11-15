@@ -49,8 +49,8 @@ def process_walk_controllers(world):
                 world.game.state.debug.walk_candidate = None
 
             if tile_from_cpos(new_pos) != tile_from_cpos(old_pos):
-                remove_occupancy(world, tile_from_cpos(old_pos), footprint)
-                add_occupancy(world, tile_from_cpos(new_pos), footprint)
+                remove_occupancy(world, tile_from_cpos(old_pos), footprint) # Remove footprint from old tile
+                add_occupancy(world, tile_from_cpos(new_pos), footprint) # Add footprint at new tile
 
             world.transform[actor].cpos = new_pos
             budget -= norm(displacement)
@@ -99,25 +99,24 @@ def legal_candidate(world, actor, end_pos):
      Optional improvement: evaluate placement validity sequentially as each new tile is crossed and early
         return False if invalid placement found, instead of finding all tiles crossed and then checking.
     """
+    curr_pos = world.transform[actor].cpos
+    footprint = world.footprint[actor]
+    center, wings = get_footprint_tiles(curr_pos, footprint)
     tile = tile_from_cpos(end_pos)
-    if tile == tile_from_cpos(world.transform[actor].cpos):
-        return True
 
     footprint = world.footprint[actor]
     if footprint == "single":
         result = tile not in world.single_static_blockers and world.single_dynamic_blockers[tile] == 0
         return result
     if footprint == "plus":
-        static_block = tile in world.plus_static_blockers
-        dynamic_block = world.plus_dynamic_blockers[tile] > 0
-        result = not static_block and not dynamic_block
-        print(f"static block: {static_block}, dynamic block: {dynamic_block}. Legal: {result}")
-        return result
+        static_legal = tile not in world.plus_static_blockers
+        dynamic_legal = all(tile != wing or tile == wing and world.plus_dynamic_blockers[tile] == 1 for wing in wings)
+        return static_legal and dynamic_legal
 
 
 def mark_walk_controller_blocked(world, actor):
     """
-    Records a Navigator block and centers the actor.
+    Records a Navigator block and centers the actor so that blocked actors are grid aligned when stationary.
     """
     world.navigation[actor].blocked = True
     center_entity(world, actor)

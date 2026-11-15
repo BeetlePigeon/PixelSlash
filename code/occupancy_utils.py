@@ -36,25 +36,32 @@ def get_footprint_tiles(pos: Vec2i, footprint: str) -> tuple[Vec2i, list[Vec2i]]
     return center, wings
 
 
+def add_occupancy(world, tile: Vec2i, footprint: str) -> None:
+    """
+    Updates the dynamic occupancy maps based on the given footprint being placed at 'tile'.
+
+    'tile': The tile where the actor's footprint to be added is centered.
+    'footprint': Either 'single' or 'plus'.
+    """
+    wing_offsets = footprints[footprint]["wings"]
+    world.single_dynamic_blockers[tile] += 1
+    world.plus_dynamic_blockers[tile] += 1
+    for offset in wing_offsets:
+        world.single_dynamic_blockers[tile + offset] += 1
+        world.plus_dynamic_blockers[tile + offset] += 1
+
+
 def remove_occupancy(world, tile: Vec2i, footprint: str) -> None:
     """
-    Updates the dynamic occupancy map based on the given footprint being placed at 'tile'.
-    The occupancy count for any tile cannot be less than 0.
+    Updates the dynamic occupancy maps based on the given footprint being placed at 'tile'.
+    The occupancy count for any tile cannot be less than 0. If that happens there is bad logic upstream.
 
-    There is no need to check for negative count since that could only occur from incorrect bookkeeping (which should
-    be fixed elsewhere.)
+    'tile': The tile where the actor's footprint to be removed is centered.
+    'footprint': Either 'single' or 'plus'.
     """
     wing_offsets = footprints[footprint]["wings"]
     world.single_dynamic_blockers[tile] -= 1
     world.plus_dynamic_blockers[tile] -= 1
     for offset in wing_offsets:
-        world.plus_dynamic_blockers[tile + offset] += 1
-
-
-def add_occupancy(world, tile: Vec2i, footprint: str) -> None:
-    """Updates the dynamic occupancy map based on the given footprint being placed at 'tile'."""
-    wing_offsets = footprints[footprint]["wings"]
-    world.single_dynamic_blockers[tile] += 1
-    world.plus_dynamic_blockers[tile] += 1
-    for offset in wing_offsets:
-        world.plus_dynamic_blockers[tile + offset] += 1
+        world.single_dynamic_blockers[tile + offset] -= 1
+        world.plus_dynamic_blockers[tile + offset] -= 1
