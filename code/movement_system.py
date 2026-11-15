@@ -99,19 +99,27 @@ def legal_candidate(world, actor, end_pos):
      Optional improvement: evaluate placement validity sequentially as each new tile is crossed and early
         return False if invalid placement found, instead of finding all tiles crossed and then checking.
     """
-    curr_pos = world.transform[actor].cpos
-    footprint = world.footprint[actor]
-    center, wings = get_footprint_tiles(curr_pos, footprint)
     tile = tile_from_cpos(end_pos)
-
+    actor_pos = world.transform[actor].cpos
     footprint = world.footprint[actor]
+    actor_tile, actor_wings = get_footprint_tiles(actor_pos, footprint)
+
+    if tile == actor_tile:
+        return True # Assumes current placement is already legal
+
+    count = 0
+    if tile in actor_wings:
+        count -= 1
+
     if footprint == "single":
-        result = tile not in world.single_static_blockers and world.single_dynamic_blockers[tile] == 0
-        return result
-    if footprint == "plus":
-        static_legal = tile not in world.plus_static_blockers
-        dynamic_legal = all(tile != wing or tile == wing and world.plus_dynamic_blockers[tile] == 1 for wing in wings)
-        return static_legal and dynamic_legal
+        count += world.single_dynamic_blockers[tile]
+        count += 1 if tile in world.single_static_blockers else 0
+
+    elif footprint == "plus":
+        count += world.plus_dynamic_blockers[tile]
+        count += 1 if tile in world.plus_static_blockers else 0
+
+    return count == 0
 
 
 def mark_walk_controller_blocked(world, actor):
