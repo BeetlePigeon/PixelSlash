@@ -1,4 +1,4 @@
-from support import norm, scale_vec_to_mag, tile_from_cpos, tile_center
+from support import norm, scale_vec_to_mag, tile_from_cpos, tile_center, get_tiles_traversed
 from occupancy_utils import get_footprint_tiles, add_occupancy, remove_occupancy
 
 
@@ -28,36 +28,79 @@ def process_walk_controllers(world):
 
         while budget > 0 and waypoints:
             current_waypoint = waypoints[0]
-
             if norm(current_waypoint - world.transform[actor].cpos) == 0:
                 waypoints.pop(0)
                 continue
+            old_pos = world.transform[actor].cpos
+            direction = current_waypoint - old_pos
+            distance = norm(direction)
+            if budget >= distance:
+                displacement = direction
+            else:
+                displacement = scale_vec_to_mag(direction, budget)
+            new_pos = old_pos + displacement
+            tiles_traversed = get_tiles_traversed(old_pos, new_pos)
 
-            result = get_first_legal_candidate(world, actor, budget)
-
-            if result is None:
+            if all(legal_candidate(world, actor, tile_center(tile)) for tile in tiles_traversed):
+                # Direct line path is unobstructed
+                if tile_from_cpos(new_pos) != tile_from_cpos(old_pos):
+                    remove_occupancy(world, tile_from_cpos(old_pos), footprint) # Remove footprint from old tile
+                    add_occupancy(world, tile_from_cpos(new_pos), footprint) # Add footprint at new tile
+                world.transform[actor].cpos = new_pos
+                budget -= norm(displacement)
+                if new_pos == current_waypoint:
+                    waypoints.pop(0)
+            else:
+                # Direct line path is obstructed, mark actor blocked and recenter. Nav may start avoidance next tick.
                 mark_walk_controller_blocked(world, actor)
                 break
 
-            old_pos = world.transform[actor].cpos
-            candidate, displacement = result
-            new_pos = old_pos + displacement
+            # first_crossing = tiles_traversed[0] if tiles_traversed else None
+            # if not first_crossing or first_crossing and legal_candidate(world, actor, tile_center(first_crossing)):
+            #     # Direct line path is unobstructed
+            #     direction = current_waypoint - old_pos
+            #     distance = norm(direction)
+            #     if budget >= distance:
+            #         displacement = direction
+            #     else:
+            #         displacement = scale_vec_to_mag(direction, budget)
+            #     new_pos = old_pos + displacement
+            #     remove_occupancy(world, tile_from_cpos(old_pos), footprint) # Remove footprint from old tile
+            #     add_occupancy(world, tile_from_cpos(new_pos), footprint) # Add footprint at new tile
+            #     world.transform[actor].cpos = new_pos
+            #     budget -= norm(displacement)
+            #     current_waypoint = waypoints[0]
+            #     if norm(current_waypoint - new_pos) == 0:
+            #         waypoints.pop(0)
+            # else:
+            #     # Direct line path is obstructed. Mark block and recenter. Avoidance waypoints may be created next
+            #     mark_walk_controller_blocked(world, actor)
+            #     break
 
-            if world.game.debug_mode:
-                world.game.state.debug.walk_candidate = candidate
-            else:
-                world.game.state.debug.walk_candidate = None
-
-            if tile_from_cpos(new_pos) != tile_from_cpos(old_pos):
-                remove_occupancy(world, tile_from_cpos(old_pos), footprint) # Remove footprint from old tile
-                add_occupancy(world, tile_from_cpos(new_pos), footprint) # Add footprint at new tile
-
-            world.transform[actor].cpos = new_pos
-            budget -= norm(displacement)
-            current_waypoint = waypoints[0]
-
-            if norm(current_waypoint - new_pos) == 0:
-                waypoints.pop(0)
+            # result = get_first_legal_candidate(world, actor, budget)
+            #
+            # if result is None:
+            #     mark_walk_controller_blocked(world, actor)
+            #     break
+            #
+            # candidate, displacement = result
+            # new_pos = old_pos + displacement
+            #
+            # if world.game.debug_mode:
+            #     world.game.state.debug.walk_candidate = candidate
+            # else:
+            #     world.game.state.debug.walk_candidate = None
+            #
+            # if tile_from_cpos(new_pos) != tile_from_cpos(old_pos):
+            #     remove_occupancy(world, tile_from_cpos(old_pos), footprint) # Remove footprint from old tile
+            #     add_occupancy(world, tile_from_cpos(new_pos), footprint) # Add footprint at new tile
+            #
+            # world.transform[actor].cpos = new_pos
+            # budget -= norm(displacement)
+            # current_waypoint = waypoints[0]
+            #
+            # if norm(current_waypoint - new_pos) == 0:
+            #     waypoints.pop(0)
 
 
 def get_first_legal_candidate(world, actor, budget):

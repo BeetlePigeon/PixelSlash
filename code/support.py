@@ -39,10 +39,14 @@ def chebyshev_distance(vec1: Vec2i, vec2: Vec2i) -> int:
     return max(abs(vec1.x - vec2.x), abs(vec1.y - vec2.y))
 
 
-def tiles_traversed(a: Vec2i, b: Vec2i) -> list[Vec2i]:
+def get_tiles_traversed(a: Vec2i, b: Vec2i) -> list[Vec2i]:
     """
-    Returns a list of tiles intersected by the line from a to b (not including the tile 'a' is in.)
+    Returns a list of tiles intersected by the line from position a to b (not including the tile 'a' is in.)
     On exact corner crossings, there's a tiebreak: the Y-axis step takes precedence.
+
+    args:
+    'a': Starting world position.
+    'b': Ending world position.
     """
     curr_pos = a
     positions = []

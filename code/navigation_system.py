@@ -98,10 +98,10 @@ def blocked_try_reroute(world, actor):
     """
     Determines whether navigation has failed or not when the actor is blocked.
 
-    Returns 'reroute_success' when reroute is allowed.
-    Returns 'reroute_failure' when reroute is not allowed.
+    Returns "reroute_success" when reroute is allowed.
+    Returns "reroute_failure" when reroute is not allowed.
     """
-    return "reroute_failure"
+    return "reroute_success"
 
 
 def route_is_stale(world, actor) -> bool:

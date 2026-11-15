@@ -1,4 +1,4 @@
-from support import tile_from_cpos, tile_center, tiles_traversed
+from support import tile_from_cpos, tile_center, get_tiles_traversed
 
 
 class WalkController:
@@ -31,7 +31,7 @@ class WalkController:
         direct_to_waypoint = waypoint
 #        candidates.append(direct_to_waypoint)
 
-        tiles_crossed = tiles_traversed(pos, waypoint)
+        tiles_crossed = get_tiles_traversed(pos, waypoint)
         if tiles_crossed:
             first_crossing_tile = tiles_crossed[0]
             first_crossing_center = tile_center(first_crossing_tile)

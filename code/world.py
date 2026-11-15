@@ -2,7 +2,7 @@ from support import tile_center
 from objects import Vec2i, Transform
 from camera import Camera
 from render_priority import RenderPriority
-from navigation import Navigator
+from navigator import Navigator
 from controllers import WalkController
 from occupancy_utils import add_occupancy, footprints
 from map import test_map
