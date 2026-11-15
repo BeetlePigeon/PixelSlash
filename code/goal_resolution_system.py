@@ -20,7 +20,7 @@ def set_goal(world, actor, target, mode, skill=None):
     elif mode == "interact":
         pass
     else:
-        raise ValueError(f"{mode} not implemented")
+        pass
 
     goal = {
         "mode": mode,

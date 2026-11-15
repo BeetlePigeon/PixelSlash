@@ -23,6 +23,8 @@ class Debug:
                     self.game.sim_paused = not self.game.sim_paused
                 if key == pygame.K_o and self.game.sim_paused:
                     self.game.single_tick_step_requested = True
+                if key == pygame.K_SPACE:
+                    self.game.world.spawn_enemy()
 
 
     def draw_debug_items(self, world, surface):

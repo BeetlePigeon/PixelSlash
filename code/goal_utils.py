@@ -1,4 +1,5 @@
 from support import tile_from_cpos, chebyshev_distance
+from skills import skill_data
 
 
 def in_range_of_goal(world, actor):
@@ -41,12 +42,13 @@ def get_goal_completion_range(world, actor) -> int:
     goal = world.goal[actor]
     mode = goal["mode"]
     target = goal["target"]
+    skill = goal["skill"]
 
     if mode == "walk":
         completion_range = 0
     if mode == "interact":
         completion_range = world.object_interact_range[target]
     if mode == "use_skill":
-        raise ValueError(f"{mode} not implemented")
+        completion_range = skill_data[skill]["completion_range"]
 
     return completion_range

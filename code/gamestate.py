@@ -1,4 +1,5 @@
 from snapshot_system import snapshot_system
+from ai_system import ai_system
 from navigation_system import navigation_system
 from movement_system import movement_system
 from goal_resolution_system import set_goal, goal_resolution_system
@@ -157,6 +158,7 @@ class StateGameplay(State):
         # Phase 1: Generate player and AI intents, and process them into goals.
         player = self.game.world.player
         self.build_player_intents(input_state)
+        ai_system(self.game.world)
 
         # Phase 2: Maintain navigation waypoints towards goals.
         navigation_system(self.game.world)

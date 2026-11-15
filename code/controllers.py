@@ -6,9 +6,9 @@ class WalkController:
     WalkController generates movement candidates based on the current waypoint.
     It has no knowledge of the actor goal or navigation.
     """
-    def __init__(self):
+    def __init__(self, speed=122):
         self.enabled = False
-        self.speed = 122    # Movement budget per tick, in world units.
+        self.speed = speed    # Movement budget per tick, in world units.
 
 
     def generate_candidates(self, pos, waypoint):

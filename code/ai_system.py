@@ -1,0 +1,9 @@
+from goal_resolution_system import set_goal
+
+
+def ai_system(world):
+    for eid in world.ai:
+        goal = world.goal.get(eid, None)
+        if not goal:
+            target = world.player
+            set_goal(world, actor=eid, target=target, mode="use_skill", skill="attack")

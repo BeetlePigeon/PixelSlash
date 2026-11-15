@@ -52,7 +52,6 @@ class World:
         # Dynamic blocker maps are dense. Static blocker maps are sparse.
 
         # Gameplay components
-        self.goal = {}                  # Current actor objective.
         self.transform = {}             # World position and elevation.
         # transform[eid] -> Transform
         #
@@ -63,7 +62,9 @@ class World:
         # elevation: Height used to vertically offset the entity.
         #
         # cpos and prev_cpos are Vec2i objects.
+        self.goal = {}              # Current actor objective.
         self.footprint = {}         # The space occupying footprint of entity.
+        self.ai = set()             # Controls which goals are generated for non-playable characters.
         self.navigation = {}
         self.walk_controller = {}   # What actors use to navigate to goal targets.
         # walk_controller[eid] = WalkController()
@@ -106,6 +107,33 @@ class World:
         self.debug_setup()
 
 
+    def load_map(self):
+        for y, row in enumerate(self.map):
+            for x, tile_type in enumerate(row):
+                tile = Vec2i(x, y)
+                eid = self.entity_manager.create()
+                self.tile.add(eid)
+                if tile_type == 0:
+                    image_metadata = self.game.asset_manager.image_metadata["block"]
+                    self.add_static_blockage_tiles(tile)
+                elif tile_type == 1:
+                    image_metadata = self.game.asset_manager.image_metadata["water"]
+                self.single_dynamic_blockers[tile] = 0
+                self.plus_dynamic_blockers[tile] = 0
+                self.transform[eid] = Transform(cpos=tile_center(tile), prev_cpos=tile_center(tile), elevation=0)
+                self.sprite[eid] = {
+                    "image_metadata": image_metadata,
+                    "depth_offset": - image_metadata["image"].get_height() // 2, # Use the very top of the tile for depth sort.
+                    "priority": RenderPriority.FLOOR,
+                }
+
+
+    def add_static_blockage_tiles(self, tile):
+        self.single_static_blockers.add(tile + footprints["single"]["center"])
+        self.plus_static_blockers.add(tile + footprints["plus"]["center"])
+        self.plus_static_blockers.update(tile + wing for wing in footprints["plus"]["wings"])
+
+
     def remove_entity(self, eid):
         print("Entity cleanup not implemented")
 
@@ -134,28 +162,11 @@ class World:
         return eid
 
 
-    def load_map(self):
-        for y, row in enumerate(self.map):
-            for x, tile_type in enumerate(row):
-                tile = Vec2i(x, y)
-                eid = self.entity_manager.create()
-                self.tile.add(eid)
-                if tile_type == 0:
-                    image_metadata = self.game.asset_manager.image_metadata["block"]
-                    self.add_static_blockage_tiles(tile)
-                elif tile_type == 1:
-                    image_metadata = self.game.asset_manager.image_metadata["water"]
-                self.single_dynamic_blockers[tile] = 0
-                self.plus_dynamic_blockers[tile] = 0
-                self.transform[eid] = Transform(cpos=tile_center(tile), prev_cpos=tile_center(tile), elevation=0)
-                self.sprite[eid] = {
-                    "image_metadata": image_metadata,
-                    "depth_offset": - image_metadata["image"].get_height() // 2, # Use the very top of the tile for depth sort.
-                    "priority": RenderPriority.FLOOR,
-                }
-
-
     def debug_setup(self):
+        self.spawn_chest()
+
+
+    def spawn_chest(self):
         eid = self.entity_manager.create()
         tile = Vec2i(28, 18)
         self.object.add(eid)
@@ -174,7 +185,24 @@ class World:
         }
 
 
-    def add_static_blockage_tiles(self, tile):
-        self.single_static_blockers.add(tile + footprints["single"]["center"])
-        self.plus_static_blockers.add(tile + footprints["plus"]["center"])
-        self.plus_static_blockers.update(tile + wing for wing in footprints["plus"]["wings"])
+    def spawn_enemy(self, spawn_tile=None):
+        if spawn_tile is None:
+            spawn_tile = Vec2i(5, 5)
+
+        eid = self.entity_manager.create()
+
+        self.actor.add(eid)
+        self.transform[eid] = Transform(cpos=tile_center(spawn_tile), prev_cpos=tile_center(spawn_tile), elevation=0)
+        self.footprint[eid] = "plus"
+        add_occupancy(self, spawn_tile, self.footprint[eid])
+        self.ai.add(eid)
+        self.navigation[eid] = Navigator([])
+        self.walk_controller[eid] = WalkController(speed=90)
+        self.skills[eid] = {
+            0: "attack",
+        }
+        self.sprite[eid] = {
+            "image_metadata": self.game.asset_manager.image_metadata["player"],
+            "depth_offset": 0,
+            "priority": RenderPriority.ACTOR,
+        }
