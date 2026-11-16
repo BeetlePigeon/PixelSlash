@@ -2,6 +2,7 @@ from objects import Vec2i
 from support import norm, tile_from_cpos, tile_center, chebyshev_distance
 from goal_utils import in_range_of_goal, get_goal_completion_range
 import math
+from a_star import a_star
 
 
 def navigation_system(world):
@@ -21,43 +22,49 @@ def navigation_system(world):
         if not in_range:
             if not nav.initial_route_planned:
                 nav.initial_route_planned = True
-                nav.waypoints = generate_waypoints(world, actor)
+                nav.goal_tile_center = generate_goal_tile_center(world, actor)
                 world.walk_controller[actor].enabled = True
 
             else:
                 if nav.blocked:
-                    result = blocked_try_reroute(world, actor)
-                    if result == "reroute_success":
-                        nav.blocked = False
-                        nav.waypoints = generate_block_reroute_waypoints(world, actor)
-                        world.walk_controller[actor].enabled = True
-                    elif result == "reroute_failure":
+                    reroute_allowed = can_try_reroute(world, actor)
+                    if reroute_allowed:
+                        waypoints = generate_block_reroute_waypoints(world, actor)
+                        if waypoints:
+                            nav.waypoints = waypoints
+                            nav.blocked = False
+                            world.walk_controller[actor].enabled = True
+                        else:
+                            nav.failed = True
+                    else:
                         nav.failed = True
 
                 elif route_is_stale(world, actor):
-                    nav.waypoints = generate_waypoints(world, actor)
+                    nav.goal_tile_center = generate_goal_tile_center(world, actor)
                     world.walk_controller[actor].enabled = True
 
 
-def generate_waypoints(world, actor):
-    """Creates waypoints for the navigator."""
+def generate_goal_tile_center(world, actor) -> Vec2i | None:
+    """Returns the goal tile center for the actor's goal."""
     goal = world.goal[actor]
     mode = goal["mode"]
     target = goal["target"]
     completion_range = get_goal_completion_range(world, actor)
 
-    waypoints = []
+    goal_tile_center = None
 
     if mode == "walk":
-        final_waypoint = target
-    else:
-        final_waypoint = tile_center(get_closest_in_range_tile(world, actor, target, completion_range))
+        goal_tile_center = target
+    else:   # mode == "interact" or mode == "use_skill"
+        goal_tile = get_closest_in_range_tile(world, actor, target, completion_range)
+        if goal_tile:
+            goal_tile_center = tile_center(goal_tile)
 
-    waypoints.append(final_waypoint)
-    return waypoints
+    return goal_tile_center
 
 
-def get_closest_in_range_tile(world, actor, target, tile_range) -> Vec2i:
+def get_closest_in_range_tile(world, actor, target, tile_range) -> Vec2i | None:
+    """Finds the closest legal tile to the target that is in completion range of the goal."""
     actor_tile = tile_from_cpos(world.transform[actor].cpos)
     target_tile = tile_from_cpos(world.transform[target].cpos)
 
@@ -90,25 +97,33 @@ def get_closest_in_range_tile(world, actor, target, tile_range) -> Vec2i:
 
 
 def generate_block_reroute_waypoints(world, actor):
-    waypoints = []
+    """
+    Builds a set of reroute waypoints using A*. A* may fail and in that case an empty list is returned.
+    Waypoints are tile centers.
+    """
+    start = tile_from_cpos(world.transform[actor].cpos)
+    goal = tile_from_cpos(world.navigation[actor].goal_tile_center)
+    waypoints = a_star(world, start, goal)
     return waypoints
 
 
-def blocked_try_reroute(world, actor):
+def can_try_reroute(world, actor) -> bool:
     """
-    Determines whether navigation has failed or not when the actor is blocked.
+    Determines whether navigation is allowed to generate a new route when the actor is blocked.
 
-    Returns "reroute_success" when reroute is allowed.
-    Returns "reroute_failure" when reroute is not allowed.
+    Returns True when reroute is allowed.
+    Returns False when reroute is not allowed.
+
+    Currently, always allows reroute. Future: determined based on max # of attempts, etc.
     """
-    return "reroute_success"
+    return True
 
 
 def route_is_stale(world, actor) -> bool:
     """
     Determines if route is stale.
-    If no waypoints, the route is stale since the actor still isn't in range.
-    Otherwise, compares the final waypoint to the target's current position.
+    If no waypoints, the route is stale since the actor still isn't in range of the goal.
+    Otherwise, the route is stale if the final waypoint is outside of goal completion range.
     """
     waypoints = world.navigation[actor].waypoints
     goal = world.goal[actor]
@@ -122,9 +137,8 @@ def route_is_stale(world, actor) -> bool:
 
     if mode == "walk":
         return final_waypoint != target
-
-    final_tile = tile_from_cpos(final_waypoint)
-    target_tile = tile_from_cpos(world.transform[target].cpos)
-    completion_range = get_goal_completion_range(world, actor)
-
-    return chebyshev_distance(final_tile, target_tile) > completion_range
+    else:   # mode == "interact" or mode == "use_skill"
+        final_tile = tile_from_cpos(final_waypoint)
+        target_tile = tile_from_cpos(world.transform[target].cpos)
+        completion_range = get_goal_completion_range(world, actor)
+        return chebyshev_distance(final_tile, target_tile) > completion_range

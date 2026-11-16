@@ -4,6 +4,8 @@ class Navigator:
     Actual navigation logic happens in the 'navigation_system'.
     """
     def __init__(self, waypoints: list):
+        self.goal_tile_center = None
+        self.goal_center_reached = False
         self.waypoints = waypoints
         self.initial_route_planned = False
         self.blocked = False
@@ -12,6 +14,8 @@ class Navigator:
 
     def reset(self):
         """Resets navigator state."""
+        self.goal_tile_center = None
+        self.goal_center_reached = False
         self.waypoints = []
         self.initial_route_planned = False
         self.blocked = False

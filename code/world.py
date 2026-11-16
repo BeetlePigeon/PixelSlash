@@ -94,6 +94,8 @@ class World:
 
         # Map Setup
         self.map = test_map
+        self.map_width = None
+        self.map_height = None
         self.load_map()
 
         # Actor Setup
@@ -126,6 +128,8 @@ class World:
                     "depth_offset": - image_metadata["image"].get_height() // 2, # Use the very top of the tile for depth sort.
                     "priority": RenderPriority.FLOOR,
                 }
+        self.map_width = len(self.map[0])
+        self.map_height = len(self.map)
 
 
     def add_static_blockage_tiles(self, tile):

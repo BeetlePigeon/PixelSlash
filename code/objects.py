@@ -35,6 +35,12 @@ class Vec2i:
         return Vec2i(abs(self.x), abs(self.y))
 
 
+    def __lt__(self, other) -> bool:
+        if not isinstance(other, Vec2i):
+            return NotImplemented
+        return (self.x, self.y) < (other.x, other.y)
+
+
 @dataclass
 class Transform:
     cpos: Vec2i
