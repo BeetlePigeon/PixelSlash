@@ -2,7 +2,10 @@ from goal_resolution_system import set_goal
 
 
 def ai_system(world):
-    for eid in world.ai:
+    for eid, ai in world.ai.items():
+        if world.tick - ai["last_think"] < ai["think_cooldown"]:
+            continue
+
         goal = world.goal.get(eid, None)
         if not goal:
             target = world.player

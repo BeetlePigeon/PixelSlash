@@ -64,7 +64,7 @@ class World:
         # cpos and prev_cpos are Vec2i objects.
         self.goal = {}              # Current actor objective.
         self.footprint = {}         # The space occupying footprint of entity.
-        self.ai = set()             # Controls which goals are generated for non-playable characters.
+        self.ai = {}                # Controls which goals are generated for non-playable characters.
         self.navigation = {}
         self.walk_controller = {}   # What actors use to navigate to goal targets.
         # walk_controller[eid] = WalkController()
@@ -199,7 +199,10 @@ class World:
         self.transform[eid] = Transform(cpos=tile_center(spawn_tile), prev_cpos=tile_center(spawn_tile), elevation=0)
         self.footprint[eid] = "plus"
         add_occupancy(self, spawn_tile, self.footprint[eid])
-        self.ai.add(eid)
+        self.ai[eid] = {
+            "last_think": 0,
+            "think_cooldown": 150,
+        }
         self.navigation[eid] = Navigator([])
         self.walk_controller[eid] = WalkController(speed=90)
         self.skills[eid] = {

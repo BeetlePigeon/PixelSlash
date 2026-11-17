@@ -75,6 +75,8 @@ def reconstruct_path(came_from, start, goal):
 def a_star(world, start: Vec2i, goal: Vec2i, max_expansions=700) -> list | None:
     """
     Performs A* to find a path from the start tile to the goal tile.
+    WARNING!
+        Currently only considers static blockages when evaluating tile legality.
     Considers diagonal tiles blocked if either adjacent orthogonal tile is blocked (even if the diagonal tile is legal.)
     Uses octile distance for the heuristic.
 

@@ -51,7 +51,7 @@ class Game:
 
         # Developer mode
         self.developer_mode = True
-        self.debug_mode = False
+        self.debug_mode = True
         self.sim_paused = False
         self.single_tick_step_requested = False
 
