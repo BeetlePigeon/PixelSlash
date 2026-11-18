@@ -33,6 +33,7 @@ class Debug:
         self.draw_avoidance_waypoints(world, surface, viewport_size)
         self.draw_all_cpos(world, surface, viewport_size)
         self.draw_goal_tile(world, surface, viewport_size)
+        self.draw_profiler_overlay()
 
 
     def draw_pause_label(self):
@@ -78,3 +79,24 @@ class Debug:
                     screen_pos.y + sprite_offset.y,
                 )
                 surface.blit(image, draw_pos)
+
+
+    def draw_profiler_overlay(self):
+        pos = None
+        for actor in self.game.world.transform:
+            if actor != self.game.world.player:
+                pos = self.game.world.transform[actor].cpos
+
+        lines = [
+            f"FPS: {self.game.fps:.1f}",
+            f"FPS cap: {'uncapped' if self.game.display.fps_cap == 0 else self.game.display.fps_cap}",
+            #            f"Transforms: {len(self.game.world.transform)}",
+            f"Ticks: {self.game.world.tick}",
+            f"Actor positions {pos}",
+        ]
+        y = 4
+
+        for line in lines:
+            text_surface = self.game.display.debug_font.render(line, False, "white")
+            self.game.display.render_surface.blit(text_surface, (4, y))
+            y += 14
