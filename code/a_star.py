@@ -79,7 +79,10 @@ def a_star(world, start: Vec2i, goal: Vec2i, footprint: str, max_expansions=700)
     returns:
     A list of tile center Vec2i's for a successful path or an empty list if A* failed.
     """
-    if goal in world.plus_static_blockers:
+    if footprint == "single" and goal in world.single_static_blockers:
+        return None
+
+    if footprint == "plus" and goal in world.plus_static_blockers:
         return None
 
     if not (0 <= start.x < world.map_width and 0 <= start.y < world.map_height):
@@ -95,10 +98,11 @@ def a_star(world, start: Vec2i, goal: Vec2i, footprint: str, max_expansions=700)
 
     while frontier and nodes_expanded < max_expansions:
         f, g, current = heapq.heappop(frontier)
-        nodes_expanded += 1
 
         if g != g_score[current]:
             continue
+
+        nodes_expanded += 1
 
         if current == goal:
             return reconstruct_path(came_from, start, goal)

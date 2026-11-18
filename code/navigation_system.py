@@ -19,7 +19,7 @@ def navigation_system(world):
         nav = world.navigation[actor]
         in_range = in_range_of_goal(world, actor)
 
-        if not in_range:
+        if not nav.goal_center_reached or not in_range:
             if not nav.initial_route_planned:
                 nav.initial_route_planned = True
                 nav.goal_tile_center = generate_goal_tile_center(world, actor)
@@ -41,7 +41,10 @@ def navigation_system(world):
 
                 elif route_is_stale(world, actor):
                     nav.waypoints = []
-                    nav.goal_tile_center = generate_goal_tile_center(world, actor)
+                    new_goal_tile_center = generate_goal_tile_center(world, actor)
+                    if new_goal_tile_center != nav.goal_tile_center:
+                        nav.goal_tile_center = new_goal_tile_center
+                        nav.goal_center_reached = False
                     world.walk_controller[actor].enabled = True
 
 
@@ -65,7 +68,12 @@ def generate_goal_tile_center(world, actor) -> Vec2i | None:
 
 
 def get_closest_in_range_tile(world, actor, target, tile_range) -> Vec2i | None:
-    """Finds the closest legal tile to the target that is in completion range of the goal."""
+    """
+    Finds the closest tile to the target that is in completion range of the goal.
+
+    Does not check this closest tile for legality. Navigation handles rerouting to a valid location if this closest tile
+    turns out to be blocked.
+    """
     actor_tile = tile_from_cpos(world.transform[actor].cpos)
     target_tile = tile_from_cpos(world.transform[target].cpos)
 
