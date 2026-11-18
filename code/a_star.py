@@ -25,30 +25,21 @@ def heuristic(start, goal):
     return ORTH_COST * max(dx, dy) + (DIAG_COST - ORTH_COST) * min(dx, dy)
 
 
-def get_neighbors(world, current):
+def get_legal_neighbors(world, current, footprint):
     """
     Gets legal neighbor tiles for the expanded tile node.
     Legal neighbors are tiles where the actor can stand.
-    IMPORTANT - diagonal tiles where the actor can stand are considered illegal if either adjacent orthogonal tile
-    to the current and diagonal is blocked.
-    e.g.
-    [ ][N]
-    [C][X]
-    C = current, N = neighbor (legal), X = blocked, then N is not legal.
     """
     for dir, move_cost in DIRECTIONS:
         neighbor = current + dir
         if not (0 <= neighbor.x < world.map_width and 0 <= neighbor.y < world.map_height):
             continue
-        if neighbor in world.plus_static_blockers:
-            continue
-
-        orth_x = current + Vec2i(dir.x, 0)
-        orth_y = current + Vec2i(0, dir.y)
-        # Prevent diagonal corner cutting
-        if (orth_x in world.plus_static_blockers or orth_y in world.plus_static_blockers):
-            continue
-
+        if footprint == "single":
+            if neighbor in world.single_static_blockers or world.single_dynamic_blockers[neighbor] > 0:
+                continue
+        elif footprint == "plus":
+            if neighbor in world.plus_static_blockers or world.plus_dynamic_blockers[neighbor] > 0:
+                continue
         yield neighbor, move_cost
 
 
@@ -72,7 +63,7 @@ def reconstruct_path(came_from, start, goal):
     return tiles_to_positions(path)
 
 
-def a_star(world, start: Vec2i, goal: Vec2i, max_expansions=700) -> list | None:
+def a_star(world, start: Vec2i, goal: Vec2i, footprint: str, max_expansions=700) -> list | None:
     """
     Performs A* to find a path from the start tile to the goal tile.
     WARNING!
@@ -112,7 +103,7 @@ def a_star(world, start: Vec2i, goal: Vec2i, max_expansions=700) -> list | None:
         if current == goal:
             return reconstruct_path(came_from, start, goal)
 
-        for neighbor, move_cost in get_neighbors(world, current):
+        for neighbor, move_cost in get_legal_neighbors(world, current, footprint):
             new_cost = g_score[current] + move_cost
 
             if neighbor not in g_score or new_cost < g_score[neighbor]:

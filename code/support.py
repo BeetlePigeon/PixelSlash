@@ -67,9 +67,14 @@ def get_tiles_traversed(a: Vec2i, b: Vec2i) -> list[Vec2i]:
             curr_pos += Vec2i(sign_x * WORLD_UNITS, 0)
             positions.append(curr_pos)
             t_next_x += delta_tx
-        else:
+        elif t_next_y < t_next_x:
             curr_pos += Vec2i(0, sign_y * WORLD_UNITS)
             positions.append(curr_pos)
+            t_next_y += delta_ty
+        else:   # t_next_x == t_next_y: exact corner crossing: enter the diagonal tile.
+            curr_pos += Vec2i(sign_x * WORLD_UNITS, sign_y * WORLD_UNITS)
+            positions.append(curr_pos)
+            t_next_x += delta_tx
             t_next_y += delta_ty
 
     return [tile_from_cpos(position) for position in positions]

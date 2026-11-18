@@ -104,7 +104,8 @@ def generate_block_reroute_waypoints(world, actor):
     """
     start = tile_from_cpos(world.transform[actor].cpos)
     goal = tile_from_cpos(world.navigation[actor].goal_tile_center)
-    waypoints = a_star(world, start, goal)
+    footprint = world.footprint[actor]
+    waypoints = a_star(world, start, goal, footprint)
     return waypoints
 
 
