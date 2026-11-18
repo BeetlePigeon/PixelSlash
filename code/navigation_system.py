@@ -40,6 +40,7 @@ def navigation_system(world):
                         nav.failed = True
 
                 elif route_is_stale(world, actor):
+                    nav.waypoints = []
                     nav.goal_tile_center = generate_goal_tile_center(world, actor)
                     world.walk_controller[actor].enabled = True
 

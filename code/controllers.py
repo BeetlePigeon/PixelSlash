@@ -13,6 +13,10 @@ class WalkController:
 
     def generate_candidates(self, pos, waypoint):
         """
+        TODO !!!!!!!!!!!!!!!!!!!!!!!!!!
+        TODO NO LONGER USED. REMOVE ONCE NAVIGATION AND MOVEMENT STABLE.
+        TODO !!!!!!!!!!!!!!!!!!!!!!!!!!
+
         Candidates generated are tile center coordinates.
         The first candidate generated is the waypoint itself.
 

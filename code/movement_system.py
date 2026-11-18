@@ -26,89 +26,41 @@ def process_walk_controllers(world):
         waypoints = nav.waypoints
         footprint = world.footprint[actor]
 
-        while budget > 0 and waypoints:
-            current_waypoint = waypoints[0]
-            if norm(current_waypoint - world.transform[actor].cpos) == 0:
-                waypoints.pop(0)
-                continue
+        while budget > 0 and nav.goal_tile_center and not nav.blocked and (waypoints or not nav.goal_center_reached):
             old_pos = world.transform[actor].cpos
-            direction = current_waypoint - old_pos
-            distance = norm(direction)
-            if budget >= distance:
-                displacement = direction
-            else:
-                displacement = scale_vec_to_mag(direction, budget)
-            new_pos = old_pos + displacement
-            tiles_traversed = get_tiles_traversed(old_pos, new_pos)
-
-            if all(legal_candidate(world, actor, tile_center(tile)) for tile in tiles_traversed):
-                # Direct line path is unobstructed
-                if tile_from_cpos(new_pos) != tile_from_cpos(old_pos):
-                    remove_occupancy(world, tile_from_cpos(old_pos), footprint) # Remove footprint from old tile
-                    add_occupancy(world, tile_from_cpos(new_pos), footprint) # Add footprint at new tile
-                world.transform[actor].cpos = new_pos
-                budget -= norm(displacement)
-                if new_pos == current_waypoint:
+            if waypoints:
+                next_waypoint = waypoints[0]
+                if norm(next_waypoint - old_pos) == 0:
                     waypoints.pop(0)
+                    continue
             else:
-                # Direct line path is obstructed, mark actor blocked and recenter. Nav may start avoidance next tick.
-                mark_walk_controller_blocked(world, actor)
-                break
-
-        while budget > 0 and nav.goal_tile_center and nav.goal_center_reached is False:
-            current_waypoint = nav.goal_tile_center
-            if norm(current_waypoint - world.transform[actor].cpos) == 0:
-                nav.goal_center_reached = True
-                break
-            old_pos = world.transform[actor].cpos
-            direction = current_waypoint - old_pos
-            distance = norm(direction)
-            if budget >= distance:
-                displacement = direction
-            else:
-                displacement = scale_vec_to_mag(direction, budget)
-            new_pos = old_pos + displacement
-            tiles_traversed = get_tiles_traversed(old_pos, new_pos)
-
-            if all(legal_candidate(world, actor, tile_center(tile)) for tile in tiles_traversed):
-                # Direct line path is unobstructed
-                if tile_from_cpos(new_pos) != tile_from_cpos(old_pos):
-                    remove_occupancy(world, tile_from_cpos(old_pos), footprint) # Remove footprint from old tile
-                    add_occupancy(world, tile_from_cpos(new_pos), footprint) # Add footprint at new tile
-                world.transform[actor].cpos = new_pos
-                budget -= norm(displacement)
-                if new_pos == current_waypoint:
+                next_waypoint = nav.goal_tile_center
+                if norm(next_waypoint - old_pos) == 0:
                     nav.goal_center_reached = True
                     break
+            direction = next_waypoint - old_pos
+            distance = norm(direction)
+            if budget >= distance:
+                displacement = direction
+            else:
+                displacement = scale_vec_to_mag(direction, budget)
+            new_pos = old_pos + displacement
+            tiles_traversed = get_tiles_traversed(old_pos, new_pos)
+            traversed_legal = all(legal_candidate(world, actor, tile_center(tile)) for tile in tiles_traversed)
+            # get_tiles_traversed fails to check final tile in rare cases, so final_legal is a necessary safety check
+            final_legal = legal_candidate(world, actor, new_pos)
+            direct_legal = traversed_legal and final_legal
+            if direct_legal:
+                # Direct line path is unobstructed
+                if tile_from_cpos(new_pos) != tile_from_cpos(old_pos):
+                    remove_occupancy(world, tile_from_cpos(old_pos), footprint) # Remove footprint from old tile
+                    add_occupancy(world, tile_from_cpos(new_pos), footprint) # Add footprint at new tile
+                world.transform[actor].cpos = new_pos
+                budget -= norm(displacement)
             else:
                 # Direct line path is obstructed, mark actor blocked and recenter. Nav may start avoidance next tick.
                 mark_walk_controller_blocked(world, actor)
                 break
-
-
-def get_first_legal_candidate(world, actor, budget):
-    """
-    Returns the first legal candidate and its resulting displacement from a list of
-    candidates ordered by preference. Returns 'None' if none of the candidates are legal.
-    """
-    controller = world.walk_controller[actor]
-    pos = world.transform[actor].cpos
-    candidates = controller.generate_candidates(pos, world.navigation[actor].waypoints[0])
-    for candidate in candidates:
-        direction = candidate - pos
-        distance = norm(direction)
-
-        if budget >= distance:
-            displacement = direction
-        else:
-            displacement = scale_vec_to_mag(direction, budget)
-
-        end_pos = pos + displacement
-
-        if legal_candidate(world, actor, end_pos) and legal_candidate(world, actor, candidate):
-            return candidate, displacement
-
-    return None
 
 
 def legal_candidate(world, actor, end_pos):
@@ -171,3 +123,30 @@ def center_non_moving_entities(world):
 
 def center_entity(world, actor):
     world.transform[actor].cpos = tile_center(tile_from_cpos(world.transform[actor].cpos))
+
+
+def get_first_legal_candidate(world, actor, budget):
+    """
+    NO LONGER USED. REMOVE ONCE MOVEMENT AND NAVIGATION IS STABLE.
+
+    Returns the first legal candidate and its resulting displacement from a list of
+    candidates ordered by preference. Returns 'None' if none of the candidates are legal.
+    """
+    controller = world.walk_controller[actor]
+    pos = world.transform[actor].cpos
+    candidates = controller.generate_candidates(pos, world.navigation[actor].waypoints[0])
+    for candidate in candidates:
+        direction = candidate - pos
+        distance = norm(direction)
+
+        if budget >= distance:
+            displacement = direction
+        else:
+            displacement = scale_vec_to_mag(direction, budget)
+
+        end_pos = pos + displacement
+
+        if legal_candidate(world, actor, end_pos) and legal_candidate(world, actor, candidate):
+            return candidate, displacement
+
+    return None

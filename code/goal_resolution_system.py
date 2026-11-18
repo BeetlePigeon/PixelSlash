@@ -37,11 +37,20 @@ def set_goal(world, actor, target, mode, skill=None):
 
 
 def goal_resolution_system(world):
-    """Attempts goal action for actors in range of their target, and discards goals when navigation fails."""
-    for actor, goal in list(world.goal.items()):
-        goal_reached = in_range_of_goal(world, actor)
+    """
+    Attempts goal action for actors in who have reached their goal position and are in completion range of their goal
+    and discards goals when navigation fails.
 
-        if goal_reached:
+    Being at the goal position is different from being in completion range. For example, an actor can be at their goal
+    position but their target may have moved out of completion range during the same tick.
+    """
+    for actor, goal in list(world.goal.items()):
+        at_goal_center = world.navigation[actor].goal_center_reached
+        in_completion_range = in_range_of_goal(world, actor)
+
+        can_attempt_goal = at_goal_center and in_completion_range
+
+        if can_attempt_goal:
             attempt_goal(world, actor)
             continue
 
