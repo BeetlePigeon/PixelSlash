@@ -1,5 +1,7 @@
-from support import norm, scale_vec_to_mag, tile_from_cpos, tile_center, get_tiles_traversed
+from support import norm, scale_vec_to_mag, tile_from_cpos, tile_center, position_is_on_edge, get_tiles_traversed
 from occupancy_utils import get_footprint_tiles, add_occupancy, remove_occupancy
+from objects import Vec2i
+from constants import WORLD_UNITS
 
 
 def movement_system(world):
@@ -45,12 +47,12 @@ def process_walk_controllers(world):
             else:
                 displacement = scale_vec_to_mag(direction, budget)
             new_pos = old_pos + displacement
+            # If position lands exactly on boundary between 2 or more tiles, nudge it forward slightly so it belongs
+            # explicitly to a single tile.
+            new_pos = nudge_past_boundary(new_pos, direction)
             tiles_traversed = get_tiles_traversed(old_pos, new_pos)
             traversed_legal = all(legal_candidate(world, actor, tile_center(tile)) for tile in tiles_traversed)
-            # get_tiles_traversed fails to check final tile in rare cases, so final_legal is a necessary safety check
-            final_legal = legal_candidate(world, actor, new_pos)
-            direct_legal = traversed_legal and final_legal
-            if direct_legal:
+            if traversed_legal:
                 # Direct line path is unobstructed
                 if tile_from_cpos(new_pos) != tile_from_cpos(old_pos):
                     remove_occupancy(world, tile_from_cpos(old_pos), footprint) # Remove footprint from old tile
@@ -61,6 +63,22 @@ def process_walk_controllers(world):
                 # Direct line path is obstructed, mark actor blocked and recenter. Nav may start avoidance next tick.
                 mark_walk_controller_blocked(world, actor)
                 break
+
+
+def nudge_past_boundary(pos: Vec2i, direction: Vec2i) -> Vec2i:
+    x = pos.x
+    y = pos.y
+    if x % WORLD_UNITS == 0:
+        if direction.x > 0:
+            x += 1
+        elif direction.x < 0:
+            x -= 1
+    if y % WORLD_UNITS == 0:
+        if direction.y > 0:
+            y += 1
+        elif direction.y < 0:
+            y -= 1
+    return Vec2i(x, y)
 
 
 def legal_candidate(world, actor, end_pos):
@@ -82,6 +100,31 @@ def legal_candidate(world, actor, end_pos):
     footprint = world.footprint[actor]
     actor_tile, actor_wings = get_footprint_tiles(actor_pos, footprint)
 
+    if tile == actor_tile:
+        return True # Assumes current placement is already legal
+
+    count = 0
+    if tile in actor_wings:
+        count -= 1
+
+    if footprint == "single":
+        count += world.single_dynamic_blockers[tile]
+        count += 1 if tile in world.single_static_blockers else 0
+
+    elif footprint == "plus":
+        count += world.plus_dynamic_blockers[tile]
+        count += 1 if tile in world.plus_static_blockers else 0
+
+    return count == 0
+
+
+def debug_legal_candidate(world, actor, end_pos):
+    tile = tile_from_cpos(end_pos)
+    actor_pos = world.transform[actor].cpos
+    footprint = world.footprint[actor]
+    actor_tile, actor_wings = get_footprint_tiles(actor_pos, footprint)
+
+    print(f"center: {actor_tile}, wings: {actor_wings}, end_tile: {tile}")
     if tile == actor_tile:
         return True # Assumes current placement is already legal
 
