@@ -1,3 +1,4 @@
+from objects import Vec2i
 from support import tile_from_cpos, chebyshev_distance
 from skills import skill_data
 
@@ -52,3 +53,21 @@ def get_goal_completion_range(world, actor) -> int:
         completion_range = skill_data[skill]["completion_range"]
 
     return completion_range
+
+
+def all_tiles_in_completion_range(world, actor) -> list[Vec2i]:
+    goal = world.goal[actor]
+    mode = goal["mode"]
+    target = goal["target"]
+    completion_range = get_goal_completion_range(world, actor)
+    tiles = []
+    if mode == "walk":
+        tiles.append(tile_from_cpos(target))
+    else:
+        target_tile = tile_from_cpos(world.transform[target].cpos)
+        for x in range(target_tile.x - completion_range, target_tile.x + completion_range + 1):
+            for y in range(target_tile.y - completion_range, target_tile.y + completion_range + 1):
+                if Vec2i(x, y) == target_tile:
+                    continue
+                tiles.append(Vec2i(x, y))
+    return tiles

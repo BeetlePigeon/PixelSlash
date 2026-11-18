@@ -118,31 +118,6 @@ def legal_candidate(world, actor, end_pos):
     return count == 0
 
 
-def debug_legal_candidate(world, actor, end_pos):
-    tile = tile_from_cpos(end_pos)
-    actor_pos = world.transform[actor].cpos
-    footprint = world.footprint[actor]
-    actor_tile, actor_wings = get_footprint_tiles(actor_pos, footprint)
-
-    print(f"center: {actor_tile}, wings: {actor_wings}, end_tile: {tile}")
-    if tile == actor_tile:
-        return True # Assumes current placement is already legal
-
-    count = 0
-    if tile in actor_wings:
-        count -= 1
-
-    if footprint == "single":
-        count += world.single_dynamic_blockers[tile]
-        count += 1 if tile in world.single_static_blockers else 0
-
-    elif footprint == "plus":
-        count += world.plus_dynamic_blockers[tile]
-        count += 1 if tile in world.plus_static_blockers else 0
-
-    return count == 0
-
-
 def mark_walk_controller_blocked(world, actor):
     """
     Records a Navigator block and centers the actor so that blocked actors are grid aligned when stationary.

@@ -1,8 +1,8 @@
 from objects import Vec2i
 from support import norm, tile_from_cpos, tile_center, chebyshev_distance
-from goal_utils import in_range_of_goal, get_goal_completion_range
+from goal_utils import in_range_of_goal, get_goal_completion_range, all_tiles_in_completion_range
 import math
-from a_star import a_star
+from a_star import single_a_star, multi_a_star
 
 
 def navigation_system(world):
@@ -113,7 +113,12 @@ def generate_block_reroute_waypoints(world, actor):
     start = tile_from_cpos(world.transform[actor].cpos)
     goal = tile_from_cpos(world.navigation[actor].goal_tile_center)
     footprint = world.footprint[actor]
-    waypoints = a_star(world, actor, start, goal, footprint)
+    if world.game.state.debug.use_single_astar:
+        waypoints = single_a_star(world, actor, start, goal, footprint)
+    else:
+        goals = all_tiles_in_completion_range(world, actor)
+        print(goals)
+        waypoints = multi_a_star(world, actor, start, goals, footprint)
     return waypoints
 
 
