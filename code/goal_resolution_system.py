@@ -33,7 +33,7 @@ def set_goal(world, actor, target, mode, skill=None):
         return
 
     world.goal[actor] = goal
-    world.navigation[actor].reset()
+    world.navigation[actor].reset(world)
 
 
 def goal_resolution_system(world):

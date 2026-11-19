@@ -152,7 +152,7 @@ class World:
         self.transform[eid] = Transform(cpos=tile_center(spawn_tile), prev_cpos=tile_center(spawn_tile), elevation=0)
         self.footprint[eid] = "plus"
         add_occupancy(self, spawn_tile, self.footprint[eid])
-        self.navigation[eid] = Navigator([])
+        self.navigation[eid] = Navigator(eid, [])
         self.walk_controller[eid] = WalkController()
         self.skills[eid] = {
             0: "attack",
@@ -201,10 +201,10 @@ class World:
         add_occupancy(self, spawn_tile, self.footprint[eid])
         self.ai[eid] = {
             "last_think": 0,
-            "think_cooldown": 150,
+            "think_cooldown": 10,
         }
-        self.navigation[eid] = Navigator([])
-        self.walk_controller[eid] = WalkController(speed=90)
+        self.navigation[eid] = Navigator(eid, [])
+        self.walk_controller[eid] = WalkController(speed=40)
         self.skills[eid] = {
             0: "attack",
         }

@@ -5,7 +5,7 @@ import math
 from a_star import single_a_star, multi_a_star
 from profiler import timed
 
-search_cooldown = 10  # The enforced number of ticks between A* searches.
+search_cooldown = 4  # The enforced number of ticks between A* searches.
 stale_threshold = 200  # The number of ticks since an actor has requested a pathfind before the request is
 # considered stale and discarded.
 
@@ -40,6 +40,8 @@ def navigation_system(world):
 
             else:
                 if nav.blocked:
+                    if actor not in world.pf_requests:
+                        world.pf_requests[actor] = world.tick
                     waypoints = generate_block_reroute_waypoints(world, actor)
                     if waypoints and waypoints != "pending":
                         nav.waypoints = waypoints
@@ -110,11 +112,12 @@ def generate_block_reroute_waypoints(world, actor):
 
     if chebyshev_distance(start_tile, central_tile) <= engagement_range:
         next_pf_actor = next(iter(world.pf_requests)) if world.pf_requests else None
-        # The player skips this throttle and can always search.
+        # The player skips pathfinding throttle and can always search.
         if actor == world.player or (actor == next_pf_actor and world.tick - world.last_search >= search_cooldown):
             world.pf_requests.popitem(last=False)
             world.last_search = world.tick
             waypoints = generate_engagement_waypoints(world, actor, start_tile, central_tile, footprint)
+            return waypoints
         else:
             return "pending"
     else:

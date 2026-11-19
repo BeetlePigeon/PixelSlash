@@ -30,4 +30,3 @@ def print_timings():
             f"avg={average / 1_000_000:.3f} ms",
             f"max={maximum / 1_000_000:.3f} ms",
         )
-

@@ -26,9 +26,9 @@ def in_range_of_goal(world, actor):
 
 
 def clear_goal(world, actor):
-    """Removes a goal, resets the navigator, and disables walk_controller."""
+    """Removes the actor's goal, resets their navigator, and disables their walk_controller."""
     del world.goal[actor]
-    world.navigation[actor].reset()
+    world.navigation[actor].reset(world)
     world.walk_controller[actor].enabled = False
 
 

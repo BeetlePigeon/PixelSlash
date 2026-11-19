@@ -8,5 +8,6 @@ def ai_system(world):
 
         goal = world.goal.get(eid, None)
         if not goal:
+            ai["last_think"] = world.tick
             target = world.player
             set_goal(world, actor=eid, target=target, mode="use_skill", skill="attack")
