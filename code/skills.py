@@ -1,5 +1,5 @@
 skill_data = {
     "attack": {
-        "completion_range": 2,
+        "completion_range": 3,
     },
 }

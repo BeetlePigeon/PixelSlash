@@ -9,7 +9,6 @@ class Debug:
         self.game = game
         font_path = Path(__file__).resolve().parent.parent
         self.label_font = pygame.font.Font(font_path / "fonts" / "roboto.ttf", 16)
-        self.use_single_astar = True
 
 
     def process_debug_inputs(self, input_state):
@@ -24,8 +23,6 @@ class Debug:
                     self.game.single_tick_step_requested = True
                 if key == pygame.K_SPACE:
                     self.game.world.spawn_enemy()
-                if key == pygame.K_q:
-                    self.use_single_astar = not self.use_single_astar
 
 
     def draw_debug_items(self, world, surface):

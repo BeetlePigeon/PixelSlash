@@ -1,5 +1,6 @@
 from objects import Vec2i
 from support import norm, tile_from_cpos, tile_center, chebyshev_distance
+from constants import ENGAGEMENT_DISTANCE
 from goal_utils import in_range_of_goal, get_goal_completion_range, all_tiles_in_completion_range
 import math
 from a_star import single_a_star, multi_a_star
@@ -34,6 +35,7 @@ def navigation_system(world):
                             nav.waypoints = waypoints
                             nav.blocked = False
                             world.walk_controller[actor].enabled = True
+                            nav.goal_tile_center = tile_center(waypoints[-1])
                         else:
                             nav.failed = True
                     else:
@@ -110,16 +112,27 @@ def generate_block_reroute_waypoints(world, actor):
     Builds a set of reroute waypoints using A*. A* may fail and in that case an empty list is returned.
     Waypoints are tile centers.
     """
-    start = tile_from_cpos(world.transform[actor].cpos)
-    goal = tile_from_cpos(world.navigation[actor].goal_tile_center)
+    start_tile = tile_from_cpos(world.transform[actor].cpos)
+    target_tile = tile_from_cpos(world.navigation[actor].goal_tile_center)
     footprint = world.footprint[actor]
-    if world.game.state.debug.use_single_astar:
-        waypoints = single_a_star(world, actor, start, goal, footprint)
+    if chebyshev_distance(start_tile, target_tile) <= ENGAGEMENT_DISTANCE:
+        generate_engagement_waypoints(world, actor, start_tile, target_tile, footprint)
     else:
-        goals = all_tiles_in_completion_range(world, actor)
-        print(goals)
-        waypoints = multi_a_star(world, actor, start, goals, footprint)
+        generate_avoidance_waypoints(world, actor, start_tile, target_tile, footprint)
+
+
+
+def generate_avoidance_waypoints(world, actor, start_tile, target_tile, footprint):
+    waypoints = single_a_star(world, actor, start_tile, target_tile, footprint)
     return waypoints
+
+
+def generate_engagement_waypoints(world, actor, start_tile, target_tile, footprint):
+    print("squid")
+    potential_goals = all_tiles_in_completion_range(world, actor)
+    waypoints = multi_a_star(world, actor, start_tile, potential_goals, target_tile, footprint)
+    return waypoints
+
 
 
 def can_try_reroute(world, actor) -> bool:

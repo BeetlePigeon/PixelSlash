@@ -34,3 +34,7 @@ INTERNAL_RES = Vec2i(INTERNAL_WIDTH, INTERNAL_HEIGHT)
 # Safe y-position for recreating a windowed display after fullscreen/borderless.
 # Prevents the OS title bar from being placed above the monitor edge.
 WINDOW_TITLEBAR_SAFE_Y = 48
+
+# The minimum tile distance which actors must be from their target before attempting to A* path to a
+# valid engagement tile.
+ENGAGEMENT_DISTANCE = 14

@@ -27,10 +27,6 @@ def heuristic(start, goal):
     return ORTH_COST * max(dx, dy) + (DIAG_COST - ORTH_COST) * min(dx, dy)
 
 
-def multi_goal_heuristic(current, goals):
-    return min(heuristic(current, goal) for goal in goals)
-
-
 def get_legal_neighbors(world, current, actor_tiles, footprint):
     """
     Gets legal neighbor tiles for the expanded tile node.
@@ -136,14 +132,17 @@ def single_a_star(world, actor, start: Vec2i, goal: Vec2i, footprint: str, max_e
     return None
 
 
-def multi_a_star(world, actor, start: Vec2i, goals: list[Vec2i], footprint: str, max_expansions=700) -> list | None:
+def multi_a_star(world, actor, start: Vec2i, goals: list[Vec2i],
+                 central_tile, footprint: str, max_expansions=700, weight=2.5) -> list | None:
     """
     Performs A* to find a path from the start tile to any of the goal tiles.
 
     args:
+    'world': The game World object.
     'actor': The actor the A* search is for.
     'start': Starting tile of the search.
-    'goal': Goal tile of the search.
+    'goals': Potential goal tiles of the search (checked for legality during search, not before.)
+    'central_tile': The tile the target is currently on. Used for the heuristic.
     'footprint': The actor's footprint. Is either "single" or "plus".
     'max_expansions': How many nodes the algorithm may expand before aborting.
 
@@ -151,50 +150,83 @@ def multi_a_star(world, actor, start: Vec2i, goals: list[Vec2i], footprint: str,
     A list of tile center Vec2i's for a successful path or 'None' if A* failed.
     """
     if not (0 <= start.x < world.map_width and 0 <= start.y < world.map_height):
-        return None
+        return None        # No path for out of bounds tiles can exist
+
+    center, wings = get_footprint_tiles(world.transform[actor].cpos, footprint)
+    actor_tiles = {center, *wings}
+    valid_goals = set()
 
     for goal in goals:
+        # Filter goals: no out of bounds or obstructed tiles
         if not (0 <= goal.x < world.map_width and 0 <= goal.y < world.map_height):
-            return None
-
-        center, wings = get_footprint_tiles(world.transform[actor].cpos, footprint)
-        actor_tiles = [center, *wings]
-
+            continue
         if footprint == "single":
             if goal in world.single_static_blockers:
-                return None
+                continue
             if world.single_dynamic_blockers[goal] > (goal in actor_tiles):
-                return None
+                continue
         elif footprint == "plus":
             if goal in world.plus_static_blockers:
-                return None
-            if world.plus_dynamic_blockers[goal] > (goal in actor_tiles):
-                return None
-
-        frontier = [(heuristic(start, goal), 0, start)]
-        g_score = {start: 0}
-        came_from = {}
-        nodes_expanded = 0  # profiling metric
-
-        while frontier and nodes_expanded < max_expansions:
-            f, g, current = heapq.heappop(frontier)
-
-            if g != g_score[current]:
                 continue
+            if world.plus_dynamic_blockers[goal] > (goal in actor_tiles):
+                continue
+        valid_goals.add(goal)
 
-            nodes_expanded += 1
+    if not valid_goals:
+        return None
 
-            if current in goals:
-                return reconstruct_path(came_from, start, goal)
+    penalties = {
+        goal: weight * heuristic(goal, central_tile)
+        for goal in valid_goals
+    }
 
-            for neighbor, move_cost in get_legal_neighbors(world, current, actor_tiles, footprint):
-                new_cost = g_score[current] + move_cost
+    def weighted_h(node):
+        return min(heuristic(node, goal) + penalties[goal]
+                   for goal in valid_goals)
 
-                if neighbor not in g_score or new_cost < g_score[neighbor]:
-                    g_score[neighbor] = new_cost
-                    came_from[neighbor] = current
-                    h = heuristic(neighbor, goal)
-                    f = new_cost + h
-                    heapq.heappush(frontier, (f, new_cost, neighbor))
+    # Initialize one A* search
+    frontier = [(weighted_h(start), 0, start)]  # f, g, node
+    g_score = {start: 0}    # node: g
+    came_from = {}  # node: parent
+    nodes_expanded = 0  # profiling metric
+
+    best_goal = None
+    best_score = float("inf")
+    while frontier and nodes_expanded < max_expansions:
+        f, g, current = heapq.heappop(frontier)
+        if g != g_score[current]:
+            continue    # Ignore outdated priority-queue entries.
+        if f >= best_score:
+            break   # No remaining path can improve the best solution.
+
+        nodes_expanded += 1
+
+        if current in valid_goals:
+            score = g + penalties[current]
+            if score < best_score:
+                best_score = score
+                best_goal = current
+
+        for neighbor, move_cost in get_legal_neighbors(world, current, actor_tiles, footprint):
+            new_cost = g + move_cost
+
+            if new_cost < g_score.get(neighbor, float("inf")):
+                g_score[neighbor] = new_cost
+                came_from[neighbor] = current
+                f = new_cost + weighted_h(neighbor)
+                heapq.heappush(frontier, (f, new_cost, neighbor))
+
+    if best_goal is not None:
+        print(
+            f"start={start}",
+            f"player={central_tile}",
+            f"selected={best_goal}",
+            f"path_cost={g_score[best_goal]}",
+            f"penalty={penalties[best_goal]}",
+            f"total={best_score}",
+            f"expansions={nodes_expanded}",
+            f"max_expansions={max_expansions}",
+        )
+        return reconstruct_path(came_from, start, best_goal)
 
     return None
