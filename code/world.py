@@ -5,6 +5,7 @@ from render_priority import RenderPriority
 from navigator import Navigator
 from controllers import WalkController
 from occupancy_utils import add_occupancy, footprints
+from collections import OrderedDict
 from map import test_map
 
 
@@ -27,17 +28,16 @@ class World:
         self.tick = 0
 
         # Component Setup
-        """Each collection is indexed by eid.
-
-        Sets are tag components: they indicate membership or classification.
-        Dictionaries are data components: eid -> component data
-
-        Entities only receive the components relevant to their behavior."""
+        """Entities only receive the components that are relevant to their behavior."""
         # Tag components
         self.tile = set()       # Entities representing map tiles.
         self.actor = set()      # Entities capable of acting/moving.
         self.object = set()     # World objects that can be interacted with, distinct from actors/tiles.
 
+        self.last_search = 0                    # The tick the last A* path search was called.
+        self.pf_requests = OrderedDict()        # Stores 'actor': 'tick' on the tick an actor requests a pathfind.
+        # pf_requests[3] -> 510                 # Actor with eid 3 requested a pathfind on tick 510.
+        # Actors who request waypoint generation enter the queue and are processed in FIFO order.
         self.single_dynamic_blockers = {}
         # single_dynamic_blockers[Vec2i(9, 2)] -> 3 # Tile (9, 2) is blocked for actors with 'single' footprint since
         # there are three actors dynamically blocking it.

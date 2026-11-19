@@ -134,7 +134,7 @@ def single_a_star(world, actor, start: Vec2i, goal: Vec2i, footprint: str, max_e
 
 @timed
 def multi_a_star(world, actor, start: Vec2i, goals: list[Vec2i],
-                 central_tile, footprint: str, max_expansions=700, weight=2.5) -> list | None:
+                 central_tile, footprint: str, max_expansions=700, weight=2.1) -> list | None:
     """
     Performs A* to find a path from the start tile to any of the goal tiles.
 
@@ -218,16 +218,16 @@ def multi_a_star(world, actor, start: Vec2i, goals: list[Vec2i],
                 heapq.heappush(frontier, (f, new_cost, neighbor))
 
     if best_goal is not None:
-        print(
-            f"start={start}",
-            f"player={central_tile}",
-            f"selected={best_goal}",
-            f"path_cost={g_score[best_goal]}",
-            f"penalty={penalties[best_goal]}",
-            f"total={best_score}",
-            f"expansions={nodes_expanded}",
-            f"max_expansions={max_expansions}",
-        )
+        # print(
+        #     f"start={start}",
+        #     f"player={central_tile}",
+        #     f"selected={best_goal}",
+        #     f"path_cost={g_score[best_goal]}",
+        #     f"penalty={penalties[best_goal]}",
+        #     f"total={best_score}",
+        #     f"expansions={nodes_expanded}",
+        #     f"max_expansions={max_expansions}",
+        # )
         return reconstruct_path(came_from, start, best_goal)
 
     return None

@@ -98,7 +98,6 @@ class Game:
         return internal_x, internal_y
 
 
-    @timed
     def draw(self, render_interpolation_factor):
         self.display.render_surface.fill((0, 0, 0))
         self.state.draw(self.display.render_surface, render_interpolation_factor)

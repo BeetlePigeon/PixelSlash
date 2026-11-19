@@ -82,7 +82,6 @@ def attempt_goal(world, actor):
         clear_goal(world, actor)
 
     elif mode == "use_skill":
-        print("Attacked!!")
         actor_is_ai = world.ai.get(actor, False)
         if actor_is_ai:
             world.ai[actor]["last_think"] = world.tick
