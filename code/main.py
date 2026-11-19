@@ -9,6 +9,7 @@ from entity_manager import EntityManager
 from asset_manager import AssetManager
 from gamestate import StateGameplay
 from world import World
+from profiler import timed, print_timings
 
 
 class Game:
@@ -65,6 +66,7 @@ class Game:
         self.state.startup(persistent)
 
 
+    @timed
     def update_state(self, input_state):
         if self.state.quit:
             self.done = True
@@ -96,6 +98,7 @@ class Game:
         return internal_x, internal_y
 
 
+    @timed
     def draw(self, render_interpolation_factor):
         self.display.render_surface.fill((0, 0, 0))
         self.state.draw(self.display.render_surface, render_interpolation_factor)
@@ -166,4 +169,5 @@ if __name__ == '__main__':
     game = Game()
     game.run()
     pygame.quit()
+    print_timings()
     sys.exit()

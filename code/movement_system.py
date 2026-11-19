@@ -2,8 +2,10 @@ from support import norm, scale_vec_to_mag, tile_from_cpos, tile_center, positio
 from occupancy_utils import get_footprint_tiles, add_occupancy, remove_occupancy
 from objects import Vec2i
 from constants import WORLD_UNITS
+from profiler import timed
 
 
+@timed
 def movement_system(world):
     """
     Sequentially processes and applies movements by controller type for entities with enabled controllers.

@@ -1,11 +1,12 @@
 from objects import Vec2i
 from support import norm, tile_from_cpos, tile_center, chebyshev_distance
-from constants import ENGAGEMENT_DISTANCE
 from goal_utils import in_range_of_goal, get_goal_completion_range, all_tiles_in_completion_range
 import math
 from a_star import single_a_star, multi_a_star
+from profiler import timed
 
 
+@timed
 def navigation_system(world):
     """
     'navigation_system' creates waypoints for new goals and either regenerates waypoints or records Navigator failure
@@ -35,7 +36,10 @@ def navigation_system(world):
                             nav.waypoints = waypoints
                             nav.blocked = False
                             world.walk_controller[actor].enabled = True
-                            nav.goal_tile_center = tile_center(waypoints[-1])
+                            new_goal_tile_center = waypoints[-1]
+                            if new_goal_tile_center != nav.goal_tile_center:
+                                nav.goal_tile_center = new_goal_tile_center
+                                nav.goal_center_reached = False
                         else:
                             nav.failed = True
                     else:
@@ -44,10 +48,10 @@ def navigation_system(world):
                 elif route_is_stale(world, actor):
                     nav.waypoints = []
                     new_goal_tile_center = generate_goal_tile_center(world, actor)
+                    world.walk_controller[actor].enabled = True
                     if new_goal_tile_center != nav.goal_tile_center:
                         nav.goal_tile_center = new_goal_tile_center
                         nav.goal_center_reached = False
-                    world.walk_controller[actor].enabled = True
 
 
 def generate_goal_tile_center(world, actor) -> Vec2i | None:
@@ -113,13 +117,24 @@ def generate_block_reroute_waypoints(world, actor):
     Waypoints are tile centers.
     """
     start_tile = tile_from_cpos(world.transform[actor].cpos)
-    target_tile = tile_from_cpos(world.navigation[actor].goal_tile_center)
+    goal = world.goal[actor]
     footprint = world.footprint[actor]
-    if chebyshev_distance(start_tile, target_tile) <= ENGAGEMENT_DISTANCE:
-        generate_engagement_waypoints(world, actor, start_tile, target_tile, footprint)
-    else:
-        generate_avoidance_waypoints(world, actor, start_tile, target_tile, footprint)
 
+    if goal["mode"] == "walk":
+        destination_tile = tile_from_cpos(goal["target"])
+        return generate_avoidance_waypoints(world, actor, start_tile, destination_tile, footprint)
+
+    central_tile = tile_from_cpos(world.transform[goal["target"]].cpos)
+    buffer_range = 7    # Tuned value for engagement range game feel
+    completion_range = get_goal_completion_range(world, actor)
+    engagement_range = completion_range + buffer_range
+    # Engagement range is a tuned value which determines the minimum tile distance actors must be from their target
+    # before an A* search for a valid engagement tile can be generated.
+    if chebyshev_distance(start_tile, central_tile) <= engagement_range:
+        return generate_engagement_waypoints(world, actor, start_tile, central_tile, footprint)
+
+    destination_tile = tile_from_cpos(world.navigation[actor].goal_tile_center)
+    return generate_avoidance_waypoints(world, actor, start_tile, destination_tile, footprint)
 
 
 def generate_avoidance_waypoints(world, actor, start_tile, target_tile, footprint):
@@ -128,7 +143,6 @@ def generate_avoidance_waypoints(world, actor, start_tile, target_tile, footprin
 
 
 def generate_engagement_waypoints(world, actor, start_tile, target_tile, footprint):
-    print("squid")
     potential_goals = all_tiles_in_completion_range(world, actor)
     waypoints = multi_a_star(world, actor, start_tile, potential_goals, target_tile, footprint)
     return waypoints

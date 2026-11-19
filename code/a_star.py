@@ -1,8 +1,8 @@
 import heapq
 from constants import WORLD_UNITS
-from support import tile_from_cpos
 from occupancy_utils import get_footprint_tiles
 from objects import Vec2i
+from profiler import timed
 
 
 # Octile distance: orthogonal to diagonal is 1:sqrt(2) ~ 10:14
@@ -132,6 +132,7 @@ def single_a_star(world, actor, start: Vec2i, goal: Vec2i, footprint: str, max_e
     return None
 
 
+@timed
 def multi_a_star(world, actor, start: Vec2i, goals: list[Vec2i],
                  central_tile, footprint: str, max_expansions=700, weight=2.5) -> list | None:
     """
