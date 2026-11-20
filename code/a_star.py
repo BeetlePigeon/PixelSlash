@@ -69,9 +69,9 @@ def reconstruct_path(came_from, start, goal):
     return tiles_to_positions(path)
 
 
-def single_a_star(world, actor, start: Vec2i, goal: Vec2i, footprint: str, max_expansions=700) -> list | None:
+def single_a_star(world, actor, start: Vec2i, goal: Vec2i, footprint: str, max_expansions=70) -> list | None:
     """
-    Performs A* to find a path from the start tile to any of the goal tiles.
+    Performs A* to find a path from the start tile to the goal tile.
 
     args:
     'actor': The actor the A* search is for.
@@ -134,7 +134,8 @@ def single_a_star(world, actor, start: Vec2i, goal: Vec2i, footprint: str, max_e
 
 @timed
 def multi_a_star(world, actor, start: Vec2i, goals: list[Vec2i],
-                 central_tile, footprint: str, max_expansions=700, weight=2.1) -> list | None:
+                 central_tile, footprint: str, max_expansions=700,
+                 weight=2.1, bounds=None, return_partial=False) -> list | None:
     """
     Performs A* to find a path from the start tile to any of the goal tiles.
 
@@ -152,6 +153,16 @@ def multi_a_star(world, actor, start: Vec2i, goals: list[Vec2i],
     """
     if not (0 <= start.x < world.map_width and 0 <= start.y < world.map_height):
         return None        # No path for out of bounds tiles can exist
+
+
+    def in_bounds(tile):
+        if bounds is None:
+            return True
+        minimum, maximum = bounds
+        return (
+            minimum.x <= tile.x <= maximum.x and
+            minimum.y <= tile.y <= maximum.y
+        )
 
     center, wings = get_footprint_tiles(world.transform[actor].cpos, footprint)
     actor_tiles = {center, *wings}
@@ -185,6 +196,9 @@ def multi_a_star(world, actor, start: Vec2i, goals: list[Vec2i],
         return min(heuristic(node, goal) + penalties[goal]
                    for goal in valid_goals)
 
+    best_partial = start
+    best_partial_score = (weighted_h(start), 0)
+
     # Initialize one A* search
     frontier = [(weighted_h(start), 0, start)]  # f, g, node
     g_score = {start: 0}    # node: g
@@ -201,6 +215,11 @@ def multi_a_star(world, actor, start: Vec2i, goals: list[Vec2i],
             break   # No remaining path can improve the best solution.
 
         nodes_expanded += 1
+        if return_partial:
+            score = (weighted_h(current), g)
+            if score < best_partial_score:
+                best_partial = current
+                best_partial_score = score
 
         if current in valid_goals:
             score = g + penalties[current]
@@ -209,6 +228,9 @@ def multi_a_star(world, actor, start: Vec2i, goals: list[Vec2i],
                 best_goal = current
 
         for neighbor, move_cost in get_legal_neighbors(world, current, actor_tiles, footprint):
+            if not in_bounds(neighbor):
+                continue
+
             new_cost = g + move_cost
 
             if new_cost < g_score.get(neighbor, float("inf")):
@@ -218,16 +240,19 @@ def multi_a_star(world, actor, start: Vec2i, goals: list[Vec2i],
                 heapq.heappush(frontier, (f, new_cost, neighbor))
 
     if best_goal is not None:
-        # print(
-        #     f"start={start}",
-        #     f"player={central_tile}",
-        #     f"selected={best_goal}",
-        #     f"path_cost={g_score[best_goal]}",
-        #     f"penalty={penalties[best_goal]}",
-        #     f"total={best_score}",
-        #     f"expansions={nodes_expanded}",
-        #     f"max_expansions={max_expansions}",
-        # )
+        print(
+            f"start={start}",
+            f"player={central_tile}",
+            f"selected={best_goal}",
+            f"path_cost={g_score[best_goal]}",
+            f"penalty={penalties[best_goal]}",
+            f"total={best_score}",
+            f"expansions={nodes_expanded}",
+            f"max_expansions={max_expansions}",
+        )
         return reconstruct_path(came_from, start, best_goal)
+
+    if return_partial and best_partial != start:
+        return reconstruct_path(came_from, start, best_partial)
 
     return None

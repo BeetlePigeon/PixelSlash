@@ -17,9 +17,10 @@ def movement_system(world):
 
 def process_walk_controllers(world):
     """
-    Gets movement candidates for each actor with enabled walk_controller and applies the first
-    legal one while budget remains. Records and handles block if no candidates are legal. Updates occupancy maps
-    when applied movement transitions the actor into a new tile.
+    Gets the immediate destination ('waypoints[0]' or 'nav.goal_tile_center') for each actor with an
+    enabled walk_controller and moves towards it while legal to do so and budget remains.
+    Records a block and centers the actor when the movement would enter an illegal position.
+    Updates occupancy maps when applied movement transitions the actor into a new tile.
     """
     for actor in world.walk_controller:
         controller = world.walk_controller[actor]
@@ -49,8 +50,8 @@ def process_walk_controllers(world):
             else:
                 displacement = scale_vec_to_mag(direction, budget)
             new_pos = old_pos + displacement
-            # If position lands exactly on boundary between 2 or more tiles, nudge it forward slightly so it belongs
-            # explicitly to a single tile.
+            # If position lands on - what DDA considers - a boundary between 2 or more tiles, nudge it forward
+            # slightly so it belongs unambiguously to a single tile.
             new_pos = nudge_past_boundary(new_pos, direction)
             tiles_traversed = get_tiles_traversed(old_pos, new_pos)
             traversed_legal = all(legal_candidate(world, actor, tile_center(tile)) for tile in tiles_traversed)
@@ -68,6 +69,21 @@ def process_walk_controllers(world):
 
 
 def nudge_past_boundary(pos: Vec2i, direction: Vec2i) -> Vec2i:
+    """
+    Takes the intended displacement and lengthens it slightly if it lies on a tile edge, so that the resulting
+    movement gets DDA checked unambiguously.
+
+    The ambiguity of tile edges is an artifact of how tiles are traversed by the DDA implementation. It could be fixed,
+    but the fix is likely no cleaner than adding this nudge logic and this already has been tested and works so DON'T
+    CHANGE IT.
+
+    Example:
+        nudge_past_boundary(
+            pos = Vec2i(1024, 0)
+            direction = Vec2i(130, 152)
+        )
+        -> Vec2i(1025, 0) which is no longer on the tile edge.
+    """
     x = pos.x
     y = pos.y
     if x % WORLD_UNITS == 0:
@@ -121,15 +137,15 @@ def legal_candidate(world, actor, end_pos):
 
 
 def mark_walk_controller_blocked(world, actor):
-    """
-    Records a Navigator block and centers the actor so that blocked actors are grid aligned when stationary.
-    """
+    """Updates the Navigator block state and centers the blocked actor so that stationary actors are grid aligned."""
     world.navigation[actor].blocked = True
     center_entity(world, actor)
 
 
 def center_non_moving_entities(world):
     """
+    TODO This function may be completely redundant since blocked entities are centered when they are marked - test this.
+
     Centers entities whose motion controllers are ALL disabled.
     Does NOT center entities who do not have any motion controller component.
 
@@ -142,31 +158,5 @@ def center_non_moving_entities(world):
 
 
 def center_entity(world, actor):
+    """Centers the actor at the tile its world units lie in."""
     world.transform[actor].cpos = tile_center(tile_from_cpos(world.transform[actor].cpos))
-
-
-def get_first_legal_candidate(world, actor, budget):
-    """
-    NO LONGER USED. REMOVE ONCE MOVEMENT AND NAVIGATION IS STABLE.
-
-    Returns the first legal candidate and its resulting displacement from a list of
-    candidates ordered by preference. Returns 'None' if none of the candidates are legal.
-    """
-    controller = world.walk_controller[actor]
-    pos = world.transform[actor].cpos
-    candidates = controller.generate_candidates(pos, world.navigation[actor].waypoints[0])
-    for candidate in candidates:
-        direction = candidate - pos
-        distance = norm(direction)
-
-        if budget >= distance:
-            displacement = direction
-        else:
-            displacement = scale_vec_to_mag(direction, budget)
-
-        end_pos = pos + displacement
-
-        if legal_candidate(world, actor, end_pos) and legal_candidate(world, actor, candidate):
-            return candidate, displacement
-
-    return None

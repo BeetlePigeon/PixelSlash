@@ -153,7 +153,7 @@ class World:
         self.footprint[eid] = "plus"
         add_occupancy(self, spawn_tile, self.footprint[eid])
         self.navigation[eid] = Navigator(eid, [])
-        self.walk_controller[eid] = WalkController()
+        self.walk_controller[eid] = WalkController(80)
         self.skills[eid] = {
             0: "attack",
         }
