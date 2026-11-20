@@ -2,16 +2,26 @@ from objects import Vec2i
 from support import norm, tile_from_cpos, tile_center, chebyshev_distance
 from goal_utils import in_range_of_goal, get_goal_completion_range, all_tiles_in_completion_range
 import math
-from a_star import single_a_star, multi_a_star
+from a_star import avoidance_multiple_goal_a_star, engagement_multiple_goal_a_star
 from profiler import timed
-import random
 
 
+
+# Navigation parameters
 buffer_range = 8  # Added to goal completion range to produce minimum tile distance before A* approved
-search_cooldown = 4  # The enforced number of ticks between A* searches.
+search_cooldown = 20  # The enforced number of ticks between A* searches.
 stale_threshold = 200  # The number of ticks since an actor has requested a pathfind before the request is
 # considered stale and discarded.
-avoidance_radius = 3  # The tile radius in which to choose a random avoidance tile.
+stale_tile_range = 5 # The max tile distance a target can be from the nav's stored goal tile before the goal
+# tile is considered stale and needs to be refreshed.
+
+# A* parameters
+npc_engagement_max_expansions = 700
+npc_engagement_weight = 2.1
+
+npc_avoidance_radius = 5
+npc_avoidance_max_expansions = 700
+npc_avoidance_weight = 2.1
 
 
 @timed
@@ -72,7 +82,12 @@ def navigation_system(world):
 
 
 def generate_goal_tile_center(world, actor) -> Vec2i | None:
-    """Returns the goal tile center for the actor's goal."""
+    """
+    Returns the goal tile center for the actor's goal: the center of the tile closest to the actor that is also
+     in completion range of the target.
+
+    Actors navigate towards the goal tile center when there are no other waypoints.
+    """
     goal = world.goal[actor]
     mode = goal["mode"]
     target = goal["target"]
@@ -92,69 +107,58 @@ def generate_goal_tile_center(world, actor) -> Vec2i | None:
 
 def generate_block_reroute_waypoints(world, actor) -> list[Vec2i] | None | str:
     """
-    Builds a set of reroute waypoints using A*. A* may fail and in that case an empty list is returned.
+    Builds a list of waypoints using A*. A* may fail and in that case an empty list is returned.
     Waypoints are tile centers.
-
-    Player blocked waypoint generation is handled separately from blocked NPC waypoint generation.
-
-    Engagement waypoint generation uses multi-goal A* which is expensive and so is throttled to reduce CPU strain.
-    NPCs in the queue can search when first in line.
-
-    Avoidance waypoint generation uses single-goal A* in a small area with very few expansions so it doesn't require
-    throttling/queueing.
+    Path searches are approved for the next NPC in the search queue.
+    The player does not use the search queue and has separate reroute logic.
     """
-    start_tile = tile_from_cpos(world.transform[actor].cpos)
+    current_tile = tile_from_cpos(world.transform[actor].cpos)
     goal = world.goal[actor]
     footprint = world.footprint[actor]
 
     if actor == world.player:
-        # The player requires different navigation treatment when blocked.
-        waypoints = generate_player_reroute_waypoints(world, actor, start_tile, footprint)
+        # The player requires different pathing when blocked so is handled separately.
+        waypoints = generate_player_reroute_waypoints(world, actor, current_tile, footprint)
         return waypoints
 
+    next_pf_actor = next(iter(world.pf_requests)) if world.pf_requests else None
+    if actor == next_pf_actor and world.tick - world.last_search >= search_cooldown:
+        # Actor is next in queue and search is off cooldown.
+        world.pf_requests.popitem(last=False)
+        world.last_search = world.tick
+        print(world.last_search)
 
-    if goal["mode"] == "walk":
-        # Walk goals always run single goal A* since the goal is a single specific tile.
-        waypoints = generate_NPC_avoidance_waypoints(world, actor, start_tile, footprint)
-        if waypoints:
-            waypoints.append(world.navigation[actor].goal_tile_center)
-        return waypoints
-
-    central_tile = tile_from_cpos(world.transform[goal["target"]].cpos)
-    completion_range = get_goal_completion_range(world, actor)
-    engagement_range = completion_range + buffer_range
-    # Engagement range is a tuned value which determines the minimum tile distance actors must be from their target
-    # before an A* search for a valid engagement tile can be generated.
-
-    if chebyshev_distance(start_tile, central_tile) <= engagement_range:
-        # Actor is close enough to try and engage. Run multi-goal A* when allowed.
-        next_pf_actor = next(iter(world.pf_requests)) if world.pf_requests else None
-        if actor == next_pf_actor and world.tick - world.last_search >= search_cooldown:
-            world.pf_requests.popitem(last=False)
-            world.last_search = world.tick
-            waypoints = generate_NPC_engagement_waypoints(world, actor, start_tile, central_tile, footprint)
+        completion_range = get_goal_completion_range(world, actor)
+        engagement_range = completion_range + buffer_range
+        target_tile = tile_from_cpos(world.transform[goal["target"]].cpos)
+        if chebyshev_distance(current_tile, target_tile) <= engagement_range:
+            # Actor is close enough to try and engage. Find a path to an engagement tile.
+            waypoints = generate_npc_engagement_waypoints(world, actor, current_tile, target_tile, footprint)
             return waypoints
         else:
-            return "pending"
+            # Actor isn't close enough to try and engage. Do an avoidance maneuver to try and jostle past blockages.
+            waypoints = generate_npc_avoidance_waypoints(world, actor, current_tile, footprint)
+            if waypoints:
+                waypoints.append(world.navigation[actor].goal_tile_center)  # TODO is this needed?
+            return waypoints
     else:
-        # Actor isn't close enough to try and engage. Do a random avoidance maneuver to try and jostle past blockages.
-        waypoints = generate_NPC_avoidance_waypoints(world, actor, start_tile, footprint)
-        if waypoints:
-            waypoints.append(world.navigation[actor].goal_tile_center)
-        return waypoints
+        # Actor is in search queue and waiting for path.
+        return "pending"
 
 
 def generate_player_reroute_waypoints(world, actor, start_tile, footprint):
     pass
 
 
-def generate_NPC_engagement_waypoints(world, actor, start_tile, target_tile, footprint):
-    potential_goals = all_tiles_in_completion_range(world, actor)
-    waypoints = multi_a_star(world, actor, start_tile, potential_goals, target_tile, footprint,
-                             max_expansions=700, weight=2.1, bounds=None, return_partial=False)
-    return waypoints
+def generate_smart_path_walk_waypoints():
+    pass
 
-def generate_NPC_avoidance_waypoints(world, actor, start_tile, footprint):
+
+def generate_npc_avoidance_waypoints(world, actor, start_tile, footprint):
+    """
+    Uses multiple goal A* in a bounded region around the actor to find a path to the closest tile in that bounded
+    region that reduces distance to the target.
+    """
     goal = world.goal[actor]
     mode = goal["mode"]
     target = goal["target"]
@@ -163,24 +167,24 @@ def generate_NPC_avoidance_waypoints(world, actor, start_tile, footprint):
         target_tile = goal_tile
     else:
         target_tile = tile_from_cpos(world.transform[target].cpos)
-    radius = 5
     bounds = (
-        Vec2i(start_tile.x - radius, start_tile.y - radius),
-        Vec2i(start_tile.x + radius, start_tile.y + radius),
+        Vec2i(start_tile.x - npc_avoidance_radius, start_tile.y - npc_avoidance_radius),
+        Vec2i(start_tile.x + npc_avoidance_radius, start_tile.y + npc_avoidance_radius),
     )
-    waypoints = multi_a_star(world, actor, start_tile, [target_tile], target_tile, footprint,
-                             max_expansions=700, weight=2.1, bounds=bounds, return_partial=True)
-    print(f"tick:{world.tick} {waypoints}")
+    waypoints = avoidance_multiple_goal_a_star(
+        world, actor, start_tile,[target_tile], target_tile,
+        footprint, bounds, npc_avoidance_max_expansions, npc_avoidance_weight
+    )
     return waypoints
 
 
-def generate_NPC_avoidance_waypoints_legacy(world, actor, start_tile, footprint):
-    random_tile_offset = Vec2i(
-        random.randint(-avoidance_radius, avoidance_radius),
-        random.randint(-avoidance_radius, avoidance_radius),
+def generate_npc_engagement_waypoints(world, actor, start_tile, target_tile, footprint):
+    """Uses multiple goal A* (unbounded) to find a path to a viable engagement position."""
+    potential_goals = all_tiles_in_completion_range(world, actor)
+    waypoints = engagement_multiple_goal_a_star(
+        world, actor, start_tile, potential_goals, target_tile, footprint,
+        npc_engagement_max_expansions, npc_engagement_weight
     )
-    avoidance_goal_tile = start_tile + random_tile_offset
-    waypoints = single_a_star(world, actor, start_tile, avoidance_goal_tile, footprint)
     return waypoints
 
 
@@ -192,16 +196,13 @@ def route_is_stale(world, actor) -> bool:
     goal = world.goal[actor]
     mode = goal["mode"]
     target = goal["target"]
-
+    stored_goal_tile = tile_from_cpos(world.navigation[actor].goal_tile_center)
     if mode == "walk":
-        # Probably unnecessary - pretty sure this always evaluates to False since the target (ground) never moves.
-        # Seems harmless to keep as is.
-        return world.navigation[actor].goal_tile_center != target
-    else:   # mode == "interact" or mode == "use_skill"
-        final_tile = tile_from_cpos(world.navigation[actor].goal_tile_center)
-        target_tile = tile_from_cpos(world.transform[target].cpos)
-        completion_range = get_goal_completion_range(world, actor)
-        return chebyshev_distance(final_tile, target_tile) > completion_range
+        actual_target_tile = tile_from_cpos(world.navigation[actor].goal_tile_center)
+    else:
+        actual_target_tile = tile_from_cpos(world.transform[target].cpos)
+
+    return chebyshev_distance(stored_goal_tile, actual_target_tile) > stale_tile_range
 
 
 def get_closest_in_range_tile(world, actor, target, tile_range) -> Vec2i | None:

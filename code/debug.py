@@ -92,6 +92,7 @@ class Debug:
             f"FPS cap: {'uncapped' if self.game.display.fps_cap == 0 else self.game.display.fps_cap}",
             #            f"Transforms: {len(self.game.world.transform)}",
             f"Ticks: {self.game.world.tick}",
+            f"In queue: {len(self.game.world.pf_requests)}",
         ]
         y = 4
 
