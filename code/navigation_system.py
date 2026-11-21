@@ -35,7 +35,7 @@ npc_engagement_weight = 2.1 # Balancing knob used for multi-goal A* heuristic: h
 npc_strategic_avoidance_radius = 3 # Radius = 3 -> pathfind returns path to closest tile to target checking only
 # the 7 x 7 box centered on the actor.
 
-npc_random_avoidance_radius = 3 # LEGACY. Radius = 3 -> select a random tile in the 3 x 3 box centered on the actor
+npc_random_avoidance_radius = 3 # LEGACY. Radius = 3 -> select a random tile in the 7 x 7 box centered on the actor
 # which is then used for single goal A*.
 
 
