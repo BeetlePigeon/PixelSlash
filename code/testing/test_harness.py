@@ -4,6 +4,7 @@ from collections import defaultdict
 import pygame
 import sys
 import random
+from objects import Vec2i
 from open_chase import chase_inputs
 from profiler import timed, print_timings
 
@@ -18,8 +19,9 @@ class Harness:
         self.quit = False
         random.seed(7840)   # Ensures all RNG calls using random library are deterministic.
 
-        # Scripted inputs
-        self.script = chase_inputs
+        # Scripted Inputs and Events
+        self.spawn_open_chase_enemies()
+        self.scripted_inputs = chase_inputs
         self.script_syntax = { # Example references for how simulated inputs work.
             30: [("key_press", pygame.K_SPACE)],    # simulates pressing 'space'
             31: [("key_release", pygame.K_SPACE)],  # simulates releasing 'space'
@@ -32,12 +34,34 @@ class Harness:
         }
 
 
+    def run(self, simulated_fps=60, num_ticks=99999, visualize=True):
+        for _ in range(num_ticks):
+            if visualize:
+                self.game.clock.tick(simulated_fps)
+                self.game.fps= self.game.clock.get_fps()
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        return
+
+            tick = self.game.world.tick + 1
+            input_state = self.get_scripted_input(tick)
+            if input_state.quit or self.game.done:
+                break
+            if self.game.debug_mode:
+                self.game.state.debug.process_debug_inputs(input_state)
+            self.game.update_state(input_state)
+            if visualize:
+                self.game.draw(1)
+            else:
+                self.game.world.world_camera.center_on(self.game.world.transform[self.game.world.player].cpos)
+
+
     def get_scripted_input(self, tick):
         keys_pressed = set()
         keys_released = set()
         mouse_pressed = set()
         mouse_released = set()
-        inputs_this_tick = self.script.get(tick, [])
+        inputs_this_tick = self.scripted_inputs.get(tick, [])
         for action, arg in inputs_this_tick:
             if action == "key_press":
                 if arg not in self.keys:
@@ -78,31 +102,18 @@ class Harness:
         )
 
 
-    def run(self, simulated_fps=60, num_ticks=99999, visualize=True):
-        for _ in range(num_ticks):
-            if visualize:
-                self.game.clock.tick(simulated_fps)
-                self.game.fps= self.game.clock.get_fps()
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        return
-
-            tick = self.game.world.tick + 1
-            input_state = self.get_scripted_input(tick)
-            if input_state.quit or self.game.done:
-                break
-            if self.game.debug_mode:
-                self.game.state.debug.process_debug_inputs(input_state)
-            self.game.update_state(input_state)
-            if visualize:
-                self.game.draw(1)
-            else:
-                self.game.world.world_camera.center_on(self.game.world.transform[self.game.world.player].cpos)
+    def spawn_open_chase_enemies(self):
+        for y in range(1, 6):
+            for x in range(1, 11):
+                spawn_x = (2 * x)
+                spawn_y = (2 * y)
+                spawn_tile = Vec2i(spawn_x, spawn_y)
+                self.game.world.spawn_enemy(spawn_tile)
 
 
 if __name__ == '__main__':
     harness = Harness()
-    harness.run(simulated_fps=150, num_ticks=99999, visualize=True)
+    harness.run(simulated_fps=300, num_ticks=1000, visualize=True)
     pygame.quit()
     print_timings()
     sys.exit()

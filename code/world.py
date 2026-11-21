@@ -99,7 +99,7 @@ class World:
         self.load_map()
 
         # Actor Setup
-        self.player = self.spawn_player()
+        self.player = self.spawn_player(Vec2i(20, 30))
 
         ## Camera
         self.world_camera = Camera()
