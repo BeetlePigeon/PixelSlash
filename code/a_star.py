@@ -21,13 +21,13 @@ DIRECTIONS = [
 ]
 
 
-def heuristic(start, goal):
+def heuristic(start: Vec2i, goal: Vec2i) -> int:
     dx = abs(goal.x - start.x)
     dy = abs(goal.y - start.y)
     return ORTH_COST * max(dx, dy) + (DIAG_COST - ORTH_COST) * min(dx, dy)
 
 
-def get_legal_neighbors(world, current, actor_tiles, footprint):
+def get_legal_neighbors(world, current: Vec2i, actor_tiles, footprint: str):
     """
     Gets legal neighbor tiles for the expanded tile node.
     Legal neighbors are tiles where the actor can stand.
@@ -54,7 +54,7 @@ def tiles_to_positions(path):
     return [Vec2i(WORLD_UNITS // 2 + tile.x * WORLD_UNITS, WORLD_UNITS//2 + tile.y * WORLD_UNITS) for tile in path]
 
 
-def reconstruct_path(came_from, start, goal):
+def reconstruct_path(came_from: dict, start: Vec2i, goal: Vec2i) -> list:
     """Reconstructs the path into a list of tiles."""
     path = []
     current = goal
@@ -72,7 +72,7 @@ def reconstruct_path(came_from, start, goal):
 @timed
 def bounded_a_star(world, actor,
                    start: Vec2i, goal: Vec2i, footprint,
-                   bounds, max_expansions) -> list | None:
+                   bounds) -> list | None:
     """
     Performs A* to find a path from the start tile to the closest tile to the goal within the bounds given.
 
@@ -83,13 +83,12 @@ def bounded_a_star(world, actor,
     'goal': The tile the target is currently on. Used for the heuristic.
     'footprint': The actor's footprint. Is either "single" or "plus".
     'bounds': An N x N box centered at 'start' that the search must stay within.
-    'max_expansions': How many nodes the algorithm may expand before aborting.
 
     returns:
     A list of tile center Vec2i's for a successful path or 'None' if A* failed.
     """
     if not (0 <= start.x < world.map_width and 0 <= start.y < world.map_height):
-        return None  # No path for out of bounds tiles can exist
+        return None
 
     def in_bounds(tile):
         minimum, maximum = bounds
@@ -101,10 +100,6 @@ def bounded_a_star(world, actor,
     center, wings = get_footprint_tiles(world.transform[actor].cpos, footprint)
     actor_tiles = {center, *wings}
 
-    # Filter goals: no out of bounds tiles
-    if not (0 <= goal.x < world.map_width and 0 <= goal.y < world.map_height):
-        return None
-
     best_partial = start
     best_partial_score = (heuristic(start, goal), 0)
 
@@ -114,14 +109,10 @@ def bounded_a_star(world, actor,
     came_from = {}  # node: parent
     nodes_expanded = 0  # profiling metric
 
-    best_goal = None
-    best_score = float("inf")
-    while frontier and nodes_expanded < max_expansions:
+    while frontier:
         f, g, current = heapq.heappop(frontier)
         if g != g_score[current]:
             continue    # Ignore outdated priority-queue entries.
-        if f >= best_score:
-            break   # No remaining path can improve the best solution.
 
         nodes_expanded += 1
 
@@ -131,24 +122,17 @@ def bounded_a_star(world, actor,
             best_partial_score = score
 
         if current == goal:
-            if g < best_score:
-                best_score = score
-                best_goal = current
+            return reconstruct_path(came_from, start, current)
 
         for neighbor, move_cost in get_legal_neighbors(world, current, actor_tiles, footprint):
             if not in_bounds(neighbor):
                 continue
-
             new_cost = g + move_cost
-
             if new_cost < g_score.get(neighbor, float("inf")):
                 g_score[neighbor] = new_cost
                 came_from[neighbor] = current
                 f = new_cost + heuristic(neighbor, goal)
                 heapq.heappush(frontier, (f, new_cost, neighbor))
-
-    if best_goal is not None:
-        return reconstruct_path(came_from, start, best_goal)
 
     if best_partial != start:
         return reconstruct_path(came_from, start, best_partial)

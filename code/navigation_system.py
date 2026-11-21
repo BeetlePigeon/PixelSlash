@@ -24,18 +24,16 @@ player_engagement_max_expansions = 1100 # Maximum number of nodes to expand whil
 player_engagement_weight = 0 # Balancing knob used for multi-goal A* heuristic: higher weight prefers tiles
 # closer to the target while lower weight prefers tiles closer to the actor.
 
-player_strategic_avoidance_radius = 8 # Radius = 8 -> pathfind returns path to closest tile to target checking only
-# the 8 x 8 box centered on the actor.
+player_strategic_avoidance_radius = 5 # Radius = 5 -> pathfind returns path to closest tile to target checking only
+# the 11 x 11 box centered on the actor.
 
 npc_engagement_max_expansions = 700 # Maximum number of nodes to expand while searching for a path to an
 # engagement tile.
 npc_engagement_weight = 2.1 # Balancing knob used for multi-goal A* heuristic: higher weight prefers tiles
 # closer to the target while lower weight prefers tiles closer to the actor.
 
-npc_strategic_avoidance_radius = 5 # Radius = 5 -> pathfind returns path to closest tile to target checking only
-# the 5 x 5 box centered on the actor.
-npc_strategic_avoidance_max_expansions = 700 # Maximum number of nodes to expand while searching for a path during bounded
-# avoidance.
+npc_strategic_avoidance_radius = 3 # Radius = 3 -> pathfind returns path to closest tile to target checking only
+# the 7 x 7 box centered on the actor.
 
 npc_random_avoidance_radius = 3 # LEGACY. Radius = 3 -> select a random tile in the 3 x 3 box centered on the actor
 # which is then used for single goal A*.
@@ -159,14 +157,15 @@ def generate_block_reroute_waypoints(world, actor) -> list[Vec2i] | None | str:
             # Actor isn't close enough to try and engage. Do an avoidance maneuver to try and jostle past blockages.
             waypoints = generate_npc_avoidance_waypoints(world, actor, current_tile, footprint)
             if waypoints:
-                waypoints.append(world.navigation[actor].goal_tile_center)  # TODO is this needed?
+                # Avoidance waypoints don't connect to the goal tile so manually add it.
+                waypoints.append(world.navigation[actor].goal_tile_center)
             return waypoints
     else:
         # Actor is in search queue and waiting for path.
         return "pending"
 
 
-def generate_player_reroute_waypoints(world, actor, start_tile, footprint):
+def generate_player_reroute_waypoints(world, actor, current_tile, footprint):
     """
     Builds a list of waypoints using A*. A* may fail and in that case an empty list is returned.
     Waypoints are tile centers.
@@ -176,10 +175,7 @@ def generate_player_reroute_waypoints(world, actor, start_tile, footprint):
     When blocked trying to walk, does a local avoidance maneuver.
     When blocked trying to use an interactable or skill, paths to an engagement tile unless the target is too far.
     """
-    current_tile = tile_from_cpos(world.transform[actor].cpos)
     goal = world.goal[actor]
-    footprint = world.footprint[actor]
-
     if goal["mode"] == "walk":
         waypoints = generate_player_avoidance_waypoints(world, actor, current_tile, footprint)
         return waypoints
@@ -202,11 +198,10 @@ def generate_player_avoidance_waypoints(world, actor, start_tile, footprint):
         Vec2i(start_tile.x - player_strategic_avoidance_radius, start_tile.y - player_strategic_avoidance_radius),
         Vec2i(start_tile.x + player_strategic_avoidance_radius, start_tile.y + player_strategic_avoidance_radius),
     )
-    waypoints = bounded_a_star(
-        world, actor, start_tile, target_tile, footprint, bounds, npc_strategic_avoidance_max_expansions
-    )
+    waypoints = bounded_a_star(world, actor, start_tile, target_tile, footprint, bounds)
     if waypoints:
-        waypoints.append(world.navigation[actor].goal_tile_center)  # TODO is this needed?
+        # Avoidance waypoints don't connect to the goal tile so manually add it.
+        waypoints.append(world.navigation[actor].goal_tile_center)
     return waypoints
 
 
@@ -251,10 +246,7 @@ def generate_npc_avoidance_waypoints(world, actor, start_tile, footprint):
         Vec2i(start_tile.x - npc_strategic_avoidance_radius, start_tile.y - npc_strategic_avoidance_radius),
         Vec2i(start_tile.x + npc_strategic_avoidance_radius, start_tile.y + npc_strategic_avoidance_radius),
     )
-    waypoints = bounded_a_star(
-        world, actor, start_tile, target_tile,
-        footprint, bounds, npc_strategic_avoidance_max_expansions,
-    )
+    waypoints = bounded_a_star(world, actor, start_tile, target_tile, footprint, bounds)
     return waypoints
 
 
