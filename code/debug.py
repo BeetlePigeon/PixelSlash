@@ -82,10 +82,10 @@ class Debug:
 
 
     def draw_profiler_overlay(self):
-        pos = None
-        for actor in self.game.world.transform:
-            if actor != self.game.world.player:
-                pos = self.game.world.transform[actor].cpos
+        gtc = 0
+        for actor, nav in self.game.world.navigation.items():
+            if nav.goal_tile_center:
+                gtc += 1
 
         lines = [
             f"FPS: {self.game.fps:.1f}",
@@ -93,6 +93,7 @@ class Debug:
             #            f"Transforms: {len(self.game.world.transform)}",
             f"Ticks: {self.game.world.tick}",
             f"In queue: {len(self.game.world.pf_requests)}",
+            f"Has gtc: {gtc}"
         ]
         y = 4
 

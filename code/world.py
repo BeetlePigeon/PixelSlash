@@ -6,7 +6,7 @@ from navigator import Navigator
 from controllers import WalkController
 from occupancy_utils import add_occupancy, footprints
 from collections import OrderedDict
-from map import test_map
+from map import obstacle_map, open_map
 
 
 class World:
@@ -93,7 +93,7 @@ class World:
         # }
 
         # Map Setup
-        self.map = test_map
+        self.map = open_map
         self.map_width = None
         self.map_height = None
         self.load_map()

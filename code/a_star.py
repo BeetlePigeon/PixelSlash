@@ -69,91 +69,27 @@ def reconstruct_path(came_from, start, goal):
     return tiles_to_positions(path)
 
 
-def single_a_star(world, actor, start: Vec2i, goal: Vec2i, footprint: str, max_expansions=70) -> list | None:
-    """
-    Performs A* to find a path from the start tile to the goal tile.
-
-    args:
-    'actor': The actor the A* search is for.
-    'start': Starting tile of the search.
-    'goal': Goal tile of the search.
-    'footprint': The actor's footprint. Is either "single" or "plus".
-    'max_expansions': How many nodes the algorithm may expand before aborting.
-
-    returns:
-    A list of tile center Vec2i's for a successful path or 'None' if A* failed.
-    """
-    if not (0 <= start.x < world.map_width and 0 <= start.y < world.map_height):
-        return None
-
-    if not (0 <= goal.x < world.map_width and 0 <= goal.y < world.map_height):
-        return None
-
-    center, wings = get_footprint_tiles(world.transform[actor].cpos, footprint)
-    actor_tiles = [center, *wings]
-
-    if footprint == "single":
-        if goal in world.single_static_blockers:
-            return None
-        if world.single_dynamic_blockers[goal] > (goal in actor_tiles):
-            return None
-    elif footprint == "plus":
-        if goal in world.plus_static_blockers:
-            return None
-        if world.plus_dynamic_blockers[goal] > (goal in actor_tiles):
-            return None
-
-    frontier = [(heuristic(start, goal), 0, start)]
-    g_score = {start: 0}
-    came_from = {}
-    nodes_expanded = 0  # profiling metric
-
-    while frontier and nodes_expanded < max_expansions:
-        f, g, current = heapq.heappop(frontier)
-
-        if g != g_score[current]:
-            continue
-
-        nodes_expanded += 1
-
-        if current == goal:
-            return reconstruct_path(came_from, start, goal)
-
-        for neighbor, move_cost in get_legal_neighbors(world, current, actor_tiles, footprint):
-            new_cost = g_score[current] + move_cost
-
-            if neighbor not in g_score or new_cost < g_score[neighbor]:
-                g_score[neighbor] = new_cost
-                came_from[neighbor] = current
-                h = heuristic(neighbor, goal)
-                f = new_cost + h
-                heapq.heappush(frontier, (f, new_cost, neighbor))
-
-    return None
-
-
 @timed
-def avoidance_multiple_goal_a_star(world, actor,
-                                   start: Vec2i, goals: list[Vec2i], central_tile,
-                                   footprint, bounds, max_expansions, weight) -> list | None:
+def bounded_a_star(world, actor,
+                   start: Vec2i, goal: Vec2i, footprint,
+                   bounds, max_expansions) -> list | None:
     """
-    Performs A* to find a path from the start tile to the closest tile
+    Performs A* to find a path from the start tile to the closest tile to the goal within the bounds given.
 
     args:
     'world': The game World object.
     'actor': The actor the A* search is for.
     'start': Starting tile of the search.
-    'goals': Potential goal tiles of the search (checked for legality during search, not before.)
-    'central_tile': The tile the target is currently on. Used for the heuristic.
+    'goal': The tile the target is currently on. Used for the heuristic.
     'footprint': The actor's footprint. Is either "single" or "plus".
+    'bounds': An N x N box centered at 'start' that the search must stay within.
     'max_expansions': How many nodes the algorithm may expand before aborting.
 
     returns:
     A list of tile center Vec2i's for a successful path or 'None' if A* failed.
     """
     if not (0 <= start.x < world.map_width and 0 <= start.y < world.map_height):
-        return None        # No path for out of bounds tiles can exist
-
+        return None  # No path for out of bounds tiles can exist
 
     def in_bounds(tile):
         minimum, maximum = bounds
@@ -164,31 +100,16 @@ def avoidance_multiple_goal_a_star(world, actor,
 
     center, wings = get_footprint_tiles(world.transform[actor].cpos, footprint)
     actor_tiles = {center, *wings}
-    valid_goals = set()
 
-    for goal in goals:
-        # Filter goals: no out of bounds tiles
-        if not (0 <= goal.x < world.map_width and 0 <= goal.y < world.map_height):
-            continue
-        valid_goals.add(goal)
-
-    if not valid_goals:
+    # Filter goals: no out of bounds tiles
+    if not (0 <= goal.x < world.map_width and 0 <= goal.y < world.map_height):
         return None
 
-    penalties = {
-        goal: weight * heuristic(goal, central_tile)
-        for goal in valid_goals
-    }
-
-    def weighted_h(node):
-        return min(heuristic(node, goal) + penalties[goal]
-                   for goal in valid_goals)
-
     best_partial = start
-    best_partial_score = (weighted_h(start), 0)
+    best_partial_score = (heuristic(start, goal), 0)
 
     # Initialize one A* search
-    frontier = [(weighted_h(start), 0, start)]  # f, g, node
+    frontier = [(heuristic(start, goal), 0, start)]  # f, g, node
     g_score = {start: 0}    # node: g
     came_from = {}  # node: parent
     nodes_expanded = 0  # profiling metric
@@ -204,14 +125,13 @@ def avoidance_multiple_goal_a_star(world, actor,
 
         nodes_expanded += 1
 
-        score = (weighted_h(current), g)
+        score = (heuristic(current, goal), g)
         if score < best_partial_score:
             best_partial = current
             best_partial_score = score
 
-        if current in valid_goals:
-            score = g + penalties[current]
-            if score < best_score:
+        if current == goal:
+            if g < best_score:
                 best_score = score
                 best_goal = current
 
@@ -224,20 +144,10 @@ def avoidance_multiple_goal_a_star(world, actor,
             if new_cost < g_score.get(neighbor, float("inf")):
                 g_score[neighbor] = new_cost
                 came_from[neighbor] = current
-                f = new_cost + weighted_h(neighbor)
+                f = new_cost + heuristic(neighbor, goal)
                 heapq.heappush(frontier, (f, new_cost, neighbor))
 
     if best_goal is not None:
-        print(
-            f"start={start}",
-            f"player={central_tile}",
-            f"selected={best_goal}",
-            f"path_cost={g_score[best_goal]}",
-            f"penalty={penalties[best_goal]}",
-            f"total={best_score}",
-            f"expansions={nodes_expanded}",
-            f"max_expansions={max_expansions}",
-        )
         return reconstruct_path(came_from, start, best_goal)
 
     if best_partial != start:
@@ -247,10 +157,13 @@ def avoidance_multiple_goal_a_star(world, actor,
 
 
 @timed
-def engagement_multiple_goal_a_star(world, actor, start: Vec2i, goals: list[Vec2i],
-                 central_tile, footprint: str, max_expansions, weight) -> list | None:
+def multigoal_a_star(world, actor, start: Vec2i, goals: list[Vec2i],
+                     central_tile, footprint: str, max_expansions, weight) -> list | None:
     """
-    Performs A* to find a path from the start tile to any of the goal tiles.
+    Performs A* to find a path from the start tile to the best legal goal tile.
+    Goal tiles are potential engagement positions.
+    The chosen heuristic balances distance from actor to goal against distance from goal to target so that actors
+    tend to form denser packs on the approaching side before fanning out and surrounding the target.
 
     args:
     'world': The game World object.
@@ -333,16 +246,6 @@ def engagement_multiple_goal_a_star(world, actor, start: Vec2i, goals: list[Vec2
                 heapq.heappush(frontier, (f, new_cost, neighbor))
 
     if best_goal is not None:
-        print(
-            f"start={start}",
-            f"player={central_tile}",
-            f"selected={best_goal}",
-            f"path_cost={g_score[best_goal]}",
-            f"penalty={penalties[best_goal]}",
-            f"total={best_score}",
-            f"expansions={nodes_expanded}",
-            f"max_expansions={max_expansions}",
-        )
         return reconstruct_path(came_from, start, best_goal)
 
     return None
