@@ -59,7 +59,6 @@ def navigation_system(world):
             if world.tick - tick >= stale_threshold:
                 world.pf_requests.pop(actor)
                 nav.failed = True
-                print(f"took too long to find a path for actor: {actor}")
                 continue
 
         if not nav.goal_center_reached or not in_range:

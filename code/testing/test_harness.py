@@ -12,12 +12,12 @@ from profiler import timed, print_timings
 class Harness:
     def __init__(self):
         # Initialization
+        random.seed(7840)   # Ensures all RNG calls using random library are deterministic.
         self.game = Game()
         self.mouse_pos = (0, 0)
         self.keys = set()
         self.mouse_buttons = [False, False, False]
         self.quit = False
-        random.seed(7840)   # Ensures all RNG calls using random library are deterministic.
 
         # Scripted Inputs and Events
         self.spawn_open_chase_enemies()
@@ -113,7 +113,7 @@ class Harness:
 
 if __name__ == '__main__':
     harness = Harness()
-    harness.run(simulated_fps=300, num_ticks=1000, visualize=True)
+    harness.run(simulated_fps=300, num_ticks=3000, visualize=True)
     pygame.quit()
     print_timings()
     sys.exit()
