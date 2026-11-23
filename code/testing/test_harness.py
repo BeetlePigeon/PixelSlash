@@ -14,7 +14,7 @@ class Harness:
     def __init__(self, scenario):
         # Initialization
         self.scenario = scenario
-        random.seed(7840)   # Ensures all RNG calls using random library are deterministic.
+        random.seed(7840)   # Ensures all 'RNG' calls using random library are deterministic.
         self.game = Game()
         self.game.world.load_area(area_maps[scenario["area_map"]])
         self.game.world.load_enemies(scenario["enemy_positions"])
@@ -111,7 +111,11 @@ def run_scenario(scenario, num_trials=1, num_ticks=3000, visualize=True, simulat
 
     'scenario': The test scenario to run.
     'num_trials': How many times to run the scenario. Running more times gives a more normalized reading.
-    '
+    'num_ticks': How many ticks to let the scenario run for. Functions as a manual stopping point.
+    'visualize': 'True' runs the Game.draw function so you can see the scenario run. 'False' just performs the
+    simulation logic while displaying a blank screen.
+    'simulated_fps': How many simulation ticks can run each second. Note that this is an upper bound; the real number
+    of ticks ran each second is hardware constrained.
     """
     for trial in range(num_trials):
         harness = Harness(scenario=scenario)
