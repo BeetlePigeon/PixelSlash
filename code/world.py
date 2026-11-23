@@ -6,7 +6,6 @@ from navigator import Navigator
 from controllers import WalkController
 from occupancy_utils import add_occupancy, footprints
 from collections import OrderedDict
-from map import obstacle_map, open_map
 
 
 class World:
@@ -92,25 +91,31 @@ class World:
         #   "priority": ...,        # RenderPriority; breaks depth ties.
         # }
 
-        # Map Setup
-        self.map = open_map
+        # Initialize the map, player, and camera variables
+        self.player = None
+        self.world_camera = Camera()
+        self.map = None
         self.map_width = None
         self.map_height = None
-        self.load_map()
-
-        # Actor Setup
-        self.player = self.spawn_player(Vec2i(20, 30))
-
-        ## Camera
-        self.world_camera = Camera()
-        self.world_camera.center_on(self.transform[self.player].cpos)
 
         # Debug
         self.debug_setup()
 
 
-    def load_map(self):
-        for y, row in enumerate(self.map):
+    def load_area(self, area_map):
+        # Loads map tiles and builds their collision
+        self.load_map_tiles(area_map["map_tiles"])
+
+        # Spawn the player
+        self.player = self.spawn_player(area_map["player_spawn"])
+
+        # Center the camera on the player
+        self.world_camera.center_on(self.transform[self.player].cpos)
+
+
+    def load_map_tiles(self, area_map):
+        self.map = area_map
+        for y, row in enumerate(area_map):
             for x, tile_type in enumerate(row):
                 tile = Vec2i(x, y)
                 eid = self.entity_manager.create()
@@ -142,10 +147,7 @@ class World:
         print("Entity cleanup not implemented")
 
 
-    def spawn_player(self, spawn_tile=None):
-        if spawn_tile is None:
-            spawn_tile = Vec2i(5, 5)
-
+    def spawn_player(self, spawn_tile):
         eid = self.entity_manager.create()
 
         self.actor.add(eid)
@@ -189,10 +191,12 @@ class World:
         }
 
 
-    def spawn_enemy(self, spawn_tile=None):
-        if spawn_tile is None:
-            spawn_tile = Vec2i(5, 5)
+    def load_enemies(self, enemy_spawn_tiles):
+        for tile in enemy_spawn_tiles:
+            self.spawn_enemy(tile)
 
+
+    def spawn_enemy(self, spawn_tile):
         eid = self.entity_manager.create()
 
         self.actor.add(eid)

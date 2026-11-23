@@ -10,6 +10,7 @@ from asset_manager import AssetManager
 from gamestate import StateGameplay
 from world import World
 from profiler import timed, print_timings
+from area_maps import area_maps
 
 
 class Game:
@@ -166,6 +167,7 @@ class Game:
 
 if __name__ == '__main__':
     game = Game()
+    game.world.load_area(area_maps["obstacle_map"])
     game.run()
     pygame.quit()
     print_timings()

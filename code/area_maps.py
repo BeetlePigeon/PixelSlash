@@ -1,4 +1,7 @@
-obstacle_map =[
+from objects import Vec2i
+
+
+obstacle_map_tiles =[
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -105,7 +108,7 @@ obstacle_map =[
              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         ]
 
-open_map = [
+open_map_tiles = [
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -195,3 +198,31 @@ open_map = [
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 ]
+
+
+open_map = {
+    "player_spawn": Vec2i(20, 30),
+    "map_tiles": open_map_tiles,
+    "enemy_positions": [],
+}
+
+
+obstacle_map = {
+    "player_spawn": Vec2i(20, 30),
+    "map_tiles": obstacle_map_tiles,
+    "enemy_positions": [],
+}
+
+
+collapse_scenario_map = {
+    "player_spawn": Vec2i(25, 15),
+    "map_tiles": open_map_tiles,
+    "enemy_positions": [],
+}
+
+
+area_maps = {
+    "open_map": open_map,
+    "obstacle_map": obstacle_map,
+    "collapse_scenario_map": collapse_scenario_map,
+}

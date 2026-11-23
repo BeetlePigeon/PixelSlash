@@ -4,24 +4,27 @@ from collections import defaultdict
 import pygame
 import sys
 import random
-from objects import Vec2i
-from open_chase import chase_inputs
+from test_scenarios import scenarios
 from profiler import timed, print_timings
+from area_maps import area_maps
 
 
 class Harness:
-    def __init__(self):
+    """A semi-headless test harness for collecting metrics in repeatable, deterministic scenarios."""
+    def __init__(self, scenario):
         # Initialization
+        self.scenario = scenario
         random.seed(7840)   # Ensures all RNG calls using random library are deterministic.
         self.game = Game()
+        self.game.world.load_area(area_maps[scenario["area_map"]])
+        self.game.world.load_enemies(scenario["enemy_positions"])
         self.mouse_pos = (0, 0)
         self.keys = set()
         self.mouse_buttons = [False, False, False]
         self.quit = False
 
         # Scripted Inputs and Events
-        self.spawn_open_chase_enemies()
-        self.scripted_inputs = chase_inputs
+        self.scripted_inputs = scenario["inputs"]
         self.script_syntax = { # Example references for how simulated inputs work.
             30: [("key_press", pygame.K_SPACE)],    # simulates pressing 'space'
             31: [("key_release", pygame.K_SPACE)],  # simulates releasing 'space'
@@ -102,18 +105,22 @@ class Harness:
         )
 
 
-    def spawn_open_chase_enemies(self):
-        for y in range(1, 6):
-            for x in range(1, 11):
-                spawn_x = (2 * x)
-                spawn_y = (2 * y)
-                spawn_tile = Vec2i(spawn_x, spawn_y)
-                self.game.world.spawn_enemy(spawn_tile)
+def run_scenario(scenario, num_trials=1, num_ticks=3000, visualize=True, simulated_fps=300):
+    """
+    Runs a test scenario and collects and prints statistics after all trials are completed.
+
+    'scenario': The test scenario to run.
+    'num_trials': How many times to run the scenario. Running more times gives a more normalized reading.
+    '
+    """
+    for trial in range(num_trials):
+        harness = Harness(scenario=scenario)
+        harness.run(num_ticks=num_ticks, visualize=visualize, simulated_fps=simulated_fps)
+    print_timings()
 
 
 if __name__ == '__main__':
-    harness = Harness()
-    harness.run(simulated_fps=300, num_ticks=3000, visualize=True)
+#    run_scenario(scenarios["open_chase"], num_trials=1, num_ticks=3000, visualize=True, simulated_fps=300)
+    run_scenario(scenarios["collapse_inwards"], num_trials=1, num_ticks=3000, visualize=True, simulated_fps=300)
     pygame.quit()
-    print_timings()
     sys.exit()

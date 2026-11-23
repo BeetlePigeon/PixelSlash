@@ -12,8 +12,8 @@ player_engagement_buffer = 20 # Added to goal completion range to produce minimu
 # an A* search will run for the player.
 npc_engagement_buffer = 8 # Added to goal completion range to produce minimum tile distance threshold before
 # an A* search will run for an NPC.
-search_cooldown = 5 # The enforced number of ticks between A* searches.
-stale_threshold = 200 # The number of ticks since an actor has requested a pathfind before the request is
+search_cooldown = 2 # The enforced number of ticks between A* searches.
+stale_threshold = 120 # The number of ticks since an actor has requested a pathfind before the request is
 # considered stale and discarded.
 stale_tile_range = 9 # The max tile distance a target can be from the nav's stored goal tile before the goal
 # tile is considered stale and needs to be refreshed.
