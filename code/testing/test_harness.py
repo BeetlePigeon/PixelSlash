@@ -5,7 +5,7 @@ import pygame
 import sys
 import random
 from test_scenarios import scenarios
-from profiler import timed, print_timings
+from profiler import print_timings, clear_timings
 from area_maps import area_maps
 
 
@@ -117,10 +117,11 @@ def run_scenario(scenario, num_trials=1, num_ticks=3000, visualize=True, simulat
         harness = Harness(scenario=scenario)
         harness.run(num_ticks=num_ticks, visualize=visualize, simulated_fps=simulated_fps)
     print_timings()
+    clear_timings()
 
 
 if __name__ == '__main__':
 #    run_scenario(scenarios["open_chase"], num_trials=1, num_ticks=3000, visualize=True, simulated_fps=300)
-    run_scenario(scenarios["collapse_inwards"], num_trials=1, num_ticks=3000, visualize=True, simulated_fps=300)
+    run_scenario(scenarios["collapse_inwards"], num_trials=1, num_ticks=300, visualize=True, simulated_fps=300)
     pygame.quit()
     sys.exit()

@@ -11,9 +11,9 @@ def timed(func):
         start = time.perf_counter_ns()
         result = func(*args, **kwargs)
         elapsed = time.perf_counter_ns() - start
-        if func.__name__ not in timings:
-            timings[func.__name__] = []
-        timings[func.__name__].append(elapsed)
+        if func.__qualname__ not in timings:
+            timings[func.__qualname__] = []
+        timings[func.__qualname__].append(elapsed)
         return result
 
     return wrapper
@@ -44,3 +44,7 @@ def print_timings():
             f"99p={ninety_ninth_percentile / 1_000_000:.3f} ms",
             f"99.9p={ninety_nine_point_ninth_percentile / 1_000_000:.3f} ms",
         )
+
+
+def clear_timings():
+    timings.clear()
